@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2023-Dez-29].
+# Last Modified: janico82 [2024-Jan-15].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -44,6 +44,11 @@ readonly log_rotation=5 # Maximum number of log files to keep
 
 # Script environment variables 
 readonly env_allowedbridges="br3 br4 br5 br6 br8 br9" # br1 & br2 are router default bridges, so br7 is not allowed
+readonly env_error=127
+readonly env_restart=1
+readonly env_no_restart=0
+readonly env_enable=1
+readonly env_disable=0
 readonly env_regex_version="[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})"
 readonly env_regex_binary="[01]"
 readonly env_regex_bridge="br[0-9]+"
@@ -105,7 +110,7 @@ compare_ssid() {
 
 	# Confirm the bridge name is valid. Usage: compare_ssid wl0.2 wl1.2
 	if [ $# -ne 2 ] || [ "$(nvram get "${1}_ssid")" != "$(nvram get "${2}_ssid")" ]; then
-		return 1 # Error or the ssid are not equal
+		return $env_error # NOK or the ssid are not equal
 	else 
 		return 0 # The ssid are equal
 	fi
@@ -115,7 +120,7 @@ validate_binary() {
 
 	# Confirm the bridge name is valid. Usage: validate_binary 1
 	if [ $# -ne 1 ] || ! echo "$1" | grep -qE "^$env_regex_binary$" ; then
-		return 1 # Error or NOK
+		return $env_error # NOK
 	else
 		return 0 # OK
 	fi	
@@ -125,7 +130,7 @@ validate_bridge() {
 
 	# Confirm the bridge name is valid. Usage: validate_bridge br8
 	if [ $# -ne 1 ] || ! echo "$1" | grep -qE "^$env_regex_allowed_bridge$" ; then
-		return 1 # Error or NOK
+		return $env_error # NOK
 	else
 		return 0 # OK
 	fi
@@ -135,7 +140,7 @@ validate_ifname() {
 
 	# Confirm the interface name is valid. Usage: validate_ifname wl0.1
 	if [ "$#" -ne 1 ] || ! echo "$1" | grep -qE "^$env_regex_allowed_ifname$" ; then
-		return 1 # Error or NOK
+		return $env_error # NOK
 	else
 		return 0 # OK
 	fi
@@ -147,7 +152,7 @@ validate_ifnames() {
 	for if_name in $1; do
 
 		if ! validate_ifname "$if_name" ; then
-			return 1 # Error or NOK
+			return $env_error # NOK
 		fi
 	done
 
@@ -158,7 +163,7 @@ validate_ipaddr() {
 
 	# Confirm the ip address is valid. Usage: validate_ipaddr 192.168.108.1
 	if [ $# -ne 1 ] || ! echo "$1" | grep -qE "^$env_regex_ipaddr$" ; then
-		return 1 # Error or not valid 
+		return $env_error # NOK or not valid 
 	else
 		return 0 # OK
 	fi
@@ -168,7 +173,7 @@ validate_local_ipaddr() {
 
 	# Confirm the ip address is valid. Usage: validate_local_ipaddr 192.168.108.1
 	if [ $# -ne 1 ] || ! echo "$1" | grep -qE "$env_regex_local_ipaddr" ; then
-		return 1 # Error or not valid 
+		return $env_error # NOK or not valid 
 	else
 		return 0 # OK
 	fi
@@ -178,7 +183,7 @@ validate_macaddr() {
 
 	# Confirm the mac address is valid. Usage: validate_macaddr 00:00:00:00:00:00
 	if [ $# -ne 1 ] || ! echo "$1" | grep -qE "^$env_regex_macaddr$" ; then
-		return 1 # Error or not valid 
+		return $env_error # NOK or not valid 
 	else
 		return 0 # OK
 	fi
@@ -188,7 +193,7 @@ validate_netmask() {
 
 	# Confirm the ip address is valid. Usage: validate_netmask 255.255.255.0
 	if [ $# -ne 1 ] || ! echo "$1" | grep -qE "^$env_regex_netmask$" ; then
-		return 1 # Error or not valid 
+		return $env_error # NOK or not valid 
 	else
 		return 0 # OK
 	fi
@@ -198,7 +203,7 @@ validate_netname() {
 
 	# Confirm the computer name is valid. Usage: validate_netname CARVAHALL
 	if [ $# -ne 1 ] || ! echo "$1" | grep -qE "^$env_regex_netname$" ; then
-		return 1 # Error or not valid 
+		return $env_error # NOK or not valid 
 	else
 		return 0 # OK
 	fi
@@ -208,7 +213,7 @@ validate_number() {
 
 	# Confirm the computer name is valid. Usage: validate_number 32
 	if [ $# -ne 1 ] || ! echo "$1" | grep -qE "^$env_regex_number$" ; then
-		return 1 # Error or not valid 
+		return $env_error # NOK or not valid 
 	else
 		return 0 # OK
 	fi
@@ -267,7 +272,7 @@ getconf_bri_allowinternet() {
 
 	# Get defaults
 	if [ -z $bri_allowinternet ] || ! validate_binary "$bri_allowinternet" ; then
-		bri_allowinternet=0
+		bri_allowinternet=$env_disable
 		loggerEx "Error: Invalid configuration gathered, using defaults($bri_allowinternet)."
 	fi
 
@@ -288,7 +293,7 @@ getconf_bri_ap_isolate() {
 
 	# Get defaults
 	if [ -z $bri_ap_isolate ] || ! validate_binary "$bri_ap_isolate" ; then
-		bri_ap_isolate=0
+		bri_ap_isolate=$env_disable
 		loggerEx "Error: Invalid configuration gathered, using defaults($bri_ap_isolate)."
 	fi
 
@@ -309,7 +314,7 @@ getconf_bri_enabled() {
 
 	# Get defaults
 	if [ -z $bri_enabled ] || ! validate_binary "$bri_enabled" ; then
-		bri_enabled=0
+		bri_enabled=$env_disable
 		loggerEx "Error: Invalid configuration gathered, using defaults($bri_enabled)."
 	fi
 
@@ -481,7 +486,7 @@ getconf_bri_staticlist() {
 	bri_staticlist="$(nvram get "${1}_staticlist")"
 
 	# Get config settings from file, if exists
- 	if { [ -z "$bri_staticlist" ]|| [ "$2" = "sc" ]; } && [ -f $script_config ]; then
+ 	if { [ -z "$bri_staticlist" ] || [ "$2" = "sc" ]; } && [ -f $script_config ]; then
 
 		. $script_config
 		bri_staticlist="$(eval echo '$'"${1}_staticlist")"
@@ -885,9 +890,9 @@ dhcp_config() {
 				loggerEx "Error: Invalid arguments. Usage: dhcp_config create br8."
 				
 				script_lock delete # Unlock script
-				exit 1 # Error
+				exit $env_error # NOK
 			fi
-			restart_dnsmasq=0
+			restart_dnsmasq=$env_no_restart
 
 			pcfile=$env_file_dnsmasq_pc
 			if [ -f "$pcfile" ]; then
@@ -947,7 +952,7 @@ dhcp_config() {
 				unset bri_dhcp_end
 				unset bri_dhcp_start
 
-				restart_dnsmasq=1
+				restart_dnsmasq=$env_restart
 			fi 
 
 			pcfile=$env_file_hosts_pc
@@ -968,8 +973,8 @@ dhcp_config() {
 				loggerEx "Applying Hosts settings for bridge($bri_name)."
 
 				# Hosts definition
-				echo 'pc_append '"$bri_ipaddr"' '"$lan_fqn_hostname"' '"$lan_hostname"'" "$CONFIG" # '"$bri_name"' # ('"$script_name"') Network Isolation Tool' >> "$pcfile"
-				echo 'pc_append '"$bri_ipaddr"' '"$lan_fqn_hostname"'" "$CONFIG" # '"$bri_name"' # ('"$script_name"') Network Isolation Tool' >> "$pcfile"
+				echo 'pc_append "'"$bri_ipaddr"' '"$lan_fqn_hostname"' '"$lan_hostname"'" "$CONFIG" # '"$bri_name"' # ('"$script_name"') Network Isolation Tool' >> "$pcfile"
+				echo 'pc_append "'"$bri_ipaddr"' '"$lan_fqn_hostname"'" "$CONFIG" # '"$bri_name"' # ('"$script_name"') Network Isolation Tool' >> "$pcfile"
 
 				for static in $(echo "${bri_staticlist#<}" | tr '<' ' '); do
 
@@ -978,7 +983,7 @@ dhcp_config() {
 					if [ -n "$netname" ] && [ -n "$lan_domain" ]; then netname="$netname.$lan_domain"; fi
 
 					if [ -n "$netname" ]; then
-						echo 'pc_append '"$ipaddr"' '"$netname"'" "$CONFIG" # '"$bri_name"' # ('"$script_name"') Network Isolation Tool' >> $pcfile
+						echo 'pc_append "'"$ipaddr"' '"$netname"'" "$CONFIG" # '"$bri_name"' # ('"$script_name"') Network Isolation Tool' >> $pcfile
 					fi
 				done
 
@@ -988,10 +993,10 @@ dhcp_config() {
 				unset lan_hostname
 				unset bri_staticlist
 
-				restart_dnsmasq=1
+				restart_dnsmasq=$env_restart
 			fi
 
-			if [ "$restart_dnsmasq" -eq 1 ]; then
+			if [ "$restart_dnsmasq" -eq "$env_restart" ]; then
 				# Restart dnsmasq service
 				service restart_dnsmasq >/dev/null 2>&1
 			fi
@@ -1003,9 +1008,9 @@ dhcp_config() {
 				loggerEx "Error: Invalid arguments. Usage: dhcp_config delete br8."
 				
 				script_lock delete # Unlock script
-				exit 1 # Error
+				exit $env_error # NOK
 			fi
-			restart_dnsmasq=0
+			restart_dnsmasq=$env_no_restart
 
 			pcfile=$env_file_dnsmasq_pc
 			if [ -f "$pcfile" ]; then
@@ -1022,7 +1027,7 @@ dhcp_config() {
 
 					loggerEx "DHCPv4 settings for bridge($bri_name) removed."
 
-					restart_dnsmasq=1
+					restart_dnsmasq=$env_restart
 				fi
 			fi
 
@@ -1035,11 +1040,11 @@ dhcp_config() {
 
 					loggerEx "Hosts settings for bridge($bri_name) removed."
 
-					restart_dnsmasq=1
+					restart_dnsmasq=$env_restart
 				fi
 			fi
 
-			if [ "$restart_dnsmasq" -eq 1 ]; then
+			if [ "$restart_dnsmasq" -eq "$env_restart" ]; then
 				# Restart dnsmasq service
 				service restart_dnsmasq >/dev/null 2>&1
 			fi			
@@ -1055,7 +1060,7 @@ bridge_enabled() {
 	case "$(nvram get "${1}_enabled")" in
 		"0") return 1 ;; # NOK
 		"1") return 0 ;; # OK
-		*)   return 1 ;; # Error or NOK
+		*)   return $env_error ;; # NOK
 	esac
 }
 
@@ -1063,14 +1068,14 @@ bridge_exists() {
 
 	# Confirm the bridge exists. Usage: bridge_exists br8
 	echo "$(gethw_bri_enabled "$1")" | grep -q "$1" > /dev/null 2>&1
-	return $? # Return 0 if the bridge is found (success) and 1 if the bridge is not found (error)	
+	return $? # Return 0 if the bridge is found (success) and other value if the bridge is not found (error)	
 }
 
 bridge_ifname_exists() {
 
 	# Confirm the interface exists in the bridge. Usage: bridge_ifname_exists br8 wl0.1
 	echo "$(gethw_bri_ifnames "$1")" | grep -q "$2" > /dev/null 2>&1
-	return $? # Return 0 if the interface is found (success) and 1 if the interface is not found (error)	
+	return $? # Return 0 if the interface is found (success) and other value if the interface is not found (error)	
 }
 
 bridge_config() {
@@ -1084,7 +1089,7 @@ bridge_config() {
 				loggerEx "Error: Invalid arguments. Usage: bridge_config create br8."
 				
 				script_lock delete # Unlock script
-				exit 1 # Error
+				exit $env_error # NOK
 			fi
 
 			# Confirm the bridge does not exists.
@@ -1105,8 +1110,11 @@ bridge_config() {
 				ifconfig "$bri_name" "$bri_ipaddr" netmask "$bri_netmask" >/dev/null 2>&1
 				ifconfig "$bri_name" allmulti up >/dev/null 2>&1
 
+				# Setup bridge isolation.
+				bridge_isolate "$1" "$bri_name" 0
+
 				# Setup nvram values for bridge.
-				nvram set "${bri_name}_enabled"="1"
+				nvram set "${bri_name}_enabled"=$env_enable
 				nvram set "${bri_name}_ipaddr"="$bri_ipaddr"
 				nvram set "${bri_name}_netmask"="$bri_netmask"
 				nvram commit
@@ -1124,15 +1132,12 @@ bridge_config() {
 				loggerEx "Error: Invalid arguments. Usage: bridge_config delete br8."
 				
 				script_lock delete # Unlock script
-				exit 1 # Error
+				exit $env_error # NOK
 			fi
 
 			# Confirm the bridge does exists.
 			if bridge_exists "$bri_name"; then
 				
-				# Remove interfaces from the network bridge.
-				bridge_ifname_config "$1" "$bri_name"
-
 				# Remove DHCPv4 for network bridge.
 				dhcp_config "$1" "$bri_name"
 
@@ -1140,7 +1145,11 @@ bridge_config() {
 				ifconfig "$bri_name" down >/dev/null 2>&1
 				brctl delbr "$bri_name" >/dev/null 2>&1
 
+				# Remove bridge isolation.
+				bridge_isolate "$1" "$bri_name" 0
+
 				# Setup nvram values for bridge.
+				nvram unset "${bri_name}_ap_isolate"
 				nvram unset "${bri_name}_ifnames"
 				nvram unset "${bri_name}_netmask"
 				nvram unset "${bri_name}_ipaddr"
@@ -1165,7 +1174,7 @@ bridge_ifname_change() {
 		loggerEx "Error: Invalid number of arguments. Usage: bridge_ifname_change br0 br8 wl0.1."
 		
 		script_lock delete # Unlock script
-		exit 1 # Error
+		exit $env_error # NOK
 	fi
 
 	# Remove interface from the source bridge.
@@ -1191,7 +1200,7 @@ bridge_ifname_config() {
 				loggerEx "Error: Invalid number of arguments. Usage: bridge_ifname_config create br8."
 				
 				script_lock delete # Unlock script
-				exit 1 # Error
+				exit $env_error # NOK
 			fi
 
 			# Confirm the bridge does exists.
@@ -1246,7 +1255,7 @@ bridge_ifname_config() {
 				loggerEx "Error: Invalid arguments. Usage: bridge_ifname_config delete br8."
 				
 				script_lock delete # Unlock script
-				exit 1 # Error
+				exit $env_error # NOK
 			fi
 
 			# Confirm the bridge does exists.
@@ -1277,22 +1286,23 @@ bridge_ifname_config() {
 
 bridge_isolate() {
 	bri_name=$2
+	restart_wireless="$(if [ $# -eq 2 ]; then echo "$env_restart"; else echo "$3"; fi)"
 
 	case $1 in
 		create)
-			actions="1"
+			action=$env_enable
 		;;
 		delete)
-			actions="0"
+			action=$env_disable
 		;;
 	esac
 
-	# Confirm the function was called with two arguments.
-	if [ $# -ne 2 ] || ! validate_bridge "$bri_name" ; then
+	# Confirm the function was called with two or three arguments.
+	if { [ $# -ne 2 ] && [ $# -ne 3 ]; } || ! validate_bridge "$bri_name" ; then
 		loggerEx "Error: Invalid number of arguments. Usage: bridge_isolate create/delete br8."
 		
 		script_lock delete # Unlock script
-		exit 1 # Error
+		exit $env_error # NOK
 	fi
 
 	# Gathering values from config.
@@ -1302,24 +1312,18 @@ bridge_isolate() {
 	# Setup nvram values for bridge.
 	for if_name in $bri_ifnames; do
 
-		nvram set "${if_name}_ap_isolate"="$actions"
+		nvram set "${if_name}_ap_isolate"="$action"
 
-		loggerEx "Set interface($if_name) AP isolated($actions)."
+		loggerEx "Set interface($if_name) AP isolated($action)."
 	done
 
-	case $1 in
-		create)
-			nvram set "${bri_name}_ap_isolate"="$actions"
-		;;
-		delete)
-			nvram unset "${bri_name}_ap_isolate"
-		;;
-	esac
-	
+	nvram set "${bri_name}_ap_isolate"="$action"
 	nvram commit
 
-	# Restart Wireless service
-	service restart_wireless >/dev/null 2>&1
+	if [ "$restart_wireless" -eq "$env_restart" ]; then
+		# Restart Wireless service
+		service restart_wireless >/dev/null 2>&1
+	fi
 
 	return 0 # OK	
 }
@@ -1338,7 +1342,7 @@ firewall_config() {
 
 	# Confirm the function was called with the correct arguments.
 	if [ $# -ne 2 ] || ! validate_bridge "$bri_name" ; then
-		loggerEx "Error: Invalid arguments. Usage: firewall_config create br8."
+		loggerEx "Error: Invalid arguments. Usage: firewall_config create/delete br8."
 		
 		script_lock delete # Unlock script
 		exit 1 # Error
@@ -1367,15 +1371,6 @@ firewall_config() {
 
 			eval "ebtables -t broute -D BROUTING $ebline"
 		done
-
-		if [ $action = "-I" ]; then
-			
-			# Insert the specific BROUTING rules for each guest interface
-			ebtables -t broute "$action" BROUTING -p IPv4 -i "$if_name" --ip-dst "$bri_ipaddr" --ip-proto icmp -j ACCEPT
-			ebtables -t broute "$action" BROUTING -p IPv4 -i "$if_name" --ip-dst "$bri_netaddr" --ip-proto icmp -j DROP
-			ebtables -t broute "$action" BROUTING -p IPv4 -i "$if_name" --ip-dst "$bri_netaddr" --ip-proto tcp --ip-dport 53 -j ACCEPT
-			ebtables -t broute "$action" BROUTING -p IPv4 -i "$if_name" --ip-dst "$bri_netaddr" --ip-proto tcp -j DROP			
-		fi
 	done
 
 	loggerEx "Applying Packet Filtering IPv4 INPUT, FORWARD and NAT rules for bridge($bri_name)."
@@ -1466,7 +1461,7 @@ wlif_enabled() {
 	case "$(nvram get "${1}_bss_enabled")" in
 		"0") return 1 ;; # NOK
 		"1") return 0 ;; # OK
-		*)   return 1 ;; # Error or NOK
+		*)   return $env_error ;; # NOK
 	esac
 }
 
@@ -1474,7 +1469,7 @@ wlif_exists() {
 
 	# Confirm the interface name exists. Usage: wlif_exists wl0.1
 	echo "$(gethw_if_enabled)" | grep -q $1 > /dev/null 2>&1
-	return $? # Return 0 if the interface is found (success) and 1 if the interface is not found (error)
+	return $? # Return 0 if the interface is found (success) and other value if the interface is not found (error)
 }
 
 wlif_lanaccess() {
@@ -1483,7 +1478,7 @@ wlif_lanaccess() {
 	case "$(nvram get "${1}_lanaccess")" in
 		"off") return 1 ;; # NOK
 		"on")  return 0 ;; # OK
-		*)     return 1 ;; # Error or NOK
+		*)     return $env_error ;; # NOK
 	esac
 }
 
@@ -1495,7 +1490,7 @@ wlif_bounceclients() {
 		loggerEx "Error: Invalid arguments. Usage: wlif_bounceclients br8."
 		
 		script_lock delete # Unlock script
-		exit 1 # Error
+		exit $env_error # NOK
 	fi
 
 	loggerEx "Forcing $script_name Gest Wifi clients on bridge($bri_name) to reauthenticate."
@@ -1536,7 +1531,7 @@ wlif_listclients() {
 	if [ $# -ne 1 ] || ! validate_bridge "$bri_name" ; then
 		loggerEx "Error: Invalid arguments. Usage: wlif_listclients br8."
 		
-		exit 1 # Error
+		exit $env_error # NOK
 	fi
 
 	# Gathering values from config.
@@ -1546,10 +1541,10 @@ wlif_listclients() {
 	arpdump="$(arp -i "$bri_name" | grep -v "incomplete")"
 
 	# Checks for clients connected in the bridge.
-	if [ -z "$arpdump" ]; then
+	if [ -z "$arpdump" ] || [ -z "${arpdump##*No match found*}" ] ; then
 
-		printf "No clients connected.\n"
-		return 1 # NOK
+		printf "No clients connected on bridge(%s).\n" $bri_name
+		return $env_error # NOK
 	fi
 
 	# Cycle through wireless interfaces.
@@ -1601,6 +1596,7 @@ configEx() {
 
 		if ! wlif_enabled wl0.2 || wlif_lanaccess wl0.2 ; then
 
+			bridge_ifname_config delete br3
 			bridge_config delete br3
 		fi
 	fi
@@ -1608,6 +1604,7 @@ configEx() {
 
 		if ! wlif_enabled wl1.2 || wlif_lanaccess wl1.2 ; then
 
+			bridge_ifname_config delete br4
 			bridge_config delete br4
 		fi
 	fi
@@ -1615,6 +1612,7 @@ configEx() {
 	
 		if ! wlif_enabled wl0.2 || wlif_lanaccess wl0.2 || ! wlif_enabled wl1.2 || wlif_lanaccess wl1.2 ; then
 
+			bridge_ifname_config delete br8
 			bridge_config delete br8
 		fi
 	fi
@@ -1623,6 +1621,7 @@ configEx() {
 
 		if ! wlif_enabled wl0.3 || wlif_lanaccess wl0.3 ; then
 
+			bridge_ifname_config delete br5
 			bridge_config delete br5
 		fi
 	fi
@@ -1630,6 +1629,7 @@ configEx() {
 
 		if ! wlif_enabled wl1.3 || wlif_lanaccess wl1.3 ; then
 
+			bridge_ifname_config delete br6
 			bridge_config delete br6
 		fi
 	fi
@@ -1637,6 +1637,7 @@ configEx() {
 	
 		if ! wlif_enabled wl0.3 || wlif_lanaccess wl0.3 || ! wlif_enabled wl1.3 || wlif_lanaccess wl1.3 ; then
 
+			bridge_ifname_config delete br9
 			bridge_config delete br9
 		fi
 	fi
@@ -1646,7 +1647,7 @@ configEx() {
 
 		if ! wlif_enabled wl1.2 || (wlif_enabled wl1.2 && wlif_lanaccess wl1.2) ; then
 
-			if [ "$(getconf_bri_enabled br3)" != 0 ]; then # Confirm the bridge is enabled
+			if [ "$(getconf_bri_enabled br3)" != $env_disable ]; then # Confirm the bridge is enabled
 
 				bridge_config create br3
 				bridge_ifname_config create br3
@@ -1657,7 +1658,7 @@ configEx() {
 
 		if ! wlif_enabled wl0.2 || (wlif_enabled wl0.2 && wlif_lanaccess wl0.2) ; then
 
-			if [ "$(getconf_bri_enabled br4)" != 0 ]; then # Confirm the bridge is enabled
+			if [ "$(getconf_bri_enabled br4)" != $env_disable ]; then # Confirm the bridge is enabled
 
 				bridge_config create br4
 				bridge_ifname_config create br4
@@ -1668,19 +1669,19 @@ configEx() {
 
 		if compare_ssid wl0.2 wl1.2 ; then # The ssids are equal so one bridge
 
-			if [ "$(getconf_bri_enabled br8)" != 0 ]; then # Confirm the bridge is enabled
+			if [ "$(getconf_bri_enabled br8)" != $env_disable ]; then # Confirm the bridge is enabled
 
 				bridge_config create br8
 				bridge_ifname_config create br8
 			fi
 		else # The ssids are not equal so create separated bridges
 	
-			if [ "$(getconf_bri_enabled br3)" != 0 ]; then # Confirm the bridge is enabled
+			if [ "$(getconf_bri_enabled br3)" != $env_disable ]; then # Confirm the bridge is enabled
 
 				bridge_config create br3
 				bridge_ifname_config create br3
 			fi
-			if [ "$(getconf_bri_enabled br4)" != 0 ]; then # Confirm the bridge is enabled
+			if [ "$(getconf_bri_enabled br4)" != $env_disable ]; then # Confirm the bridge is enabled
 
 				bridge_config create br4
 				bridge_ifname_config create br4
@@ -1694,7 +1695,7 @@ configEx() {
 
 		if ! wlif_enabled wl1.3 || (wlif_enabled wl1.3 && wlif_lanaccess wl1.3) ; then
 
-			if [ "$(getconf_bri_enabled br5)" != 0 ]; then # Confirm the bridge is enabled
+			if [ "$(getconf_bri_enabled br5)" != $env_disable ]; then # Confirm the bridge is enabled
 
 				bridge_config create br5
 				bridge_ifname_config create br5
@@ -1705,7 +1706,7 @@ configEx() {
 
 		if ! wlif_enabled wl0.3 || (wlif_enabled wl0.3 && wlif_lanaccess wl0.3) ; then
 
-			if [ "$(getconf_bri_enabled br6)" != 0 ]; then # Confirm the bridge is enabled
+			if [ "$(getconf_bri_enabled br6)" != $env_disable ]; then # Confirm the bridge is enabled
 
 				bridge_config create br6
 				bridge_ifname_config create br6
@@ -1716,19 +1717,19 @@ configEx() {
 
 		if compare_ssid wl0.3 wl1.3 ; then # The ssids are equal so one bridge
 
-			if [ "$(getconf_bri_enabled br9)" != 0 ]; then # Confirm the bridge is enabled
+			if [ "$(getconf_bri_enabled br9)" != $env_disable ]; then # Confirm the bridge is enabled
 
 				bridge_config create br9
 				bridge_ifname_config create br9
 			fi
 		else # The ssids are not equal so create separated bridges
 	
-			if [ "$(getconf_bri_enabled br5)" != 0 ]; then # Confirm the bridge is enabled
+			if [ "$(getconf_bri_enabled br5)" != $env_disable ]; then # Confirm the bridge is enabled
 
 				bridge_config create br5
 				bridge_ifname_config create br5
 			fi
-			if [ "$(getconf_bri_enabled br6)" != 0 ]; then # Confirm the bridge is enabled
+			if [ "$(getconf_bri_enabled br6)" != $env_disable ]; then # Confirm the bridge is enabled
 
 				bridge_config create br6
 				bridge_ifname_config create br6
@@ -1788,13 +1789,13 @@ download_file() {
 			# Confirm that the files exists.
 			if ! /usr/sbin/curl --head --fail "$scfile" >/dev/null 2>&1 ; then
 				loggerEx cli "Error. File does not exist at source URL: $scfile."
-				return 1 # Error or NOK
+				return $env_error # NOK
 			fi
 
 			# Download the file.
 			if ! /usr/sbin/curl -fsL --retry 3 "$scfile" -o "$dwfile" ; then
 				loggerEx cli "Error. Failed to download file: $scfile."
-				return 1 # Error or NOK
+				return $env_error # NOK
 			fi
 		;;
 	esac
@@ -1820,26 +1821,26 @@ generate_passphrase() {
 }
 
 script_conditions() {
-	finalcheck=0
+	finalcheck=$env_disable
 	dversion="$(nvram get buildno)"
 
 	# Confirm that all device requirements are meet.
 	if [ "$(nvram get sw_mode)" -ne 1 ]; then
 		loggerEx cli "Device is not running in router mode - non-router modes are not supported."
-		finalcheck=1
+		finalcheck=$env_enable
 	fi
 
 	if [ "$(nvram get jffs2_scripts)" -ne 1 ]; then
 		loggerEx cli "Device doesn't have Custom JFFS Scripts enabled."
-		finalcheck=1
+		finalcheck=$env_enable
 	fi
 
 	if [ "$(device_firmware_version "$dversion")" -lt "$(device_firmware_version 384.5)" ] && [ "$(device_firmware_version "$dversion")" -ne "$(device_firmware_version 374.43)" ]; then
 		loggerEx cli "Older Merlin firmware detected - service-event requires 384.5 or later. Please update to the latest version."
-		finalcheck=1
+		finalcheck=$env_enable
 	elif [ "$(device_firmware_version "$dversion")" -eq "$(device_firmware_version 374.43)" ]; then
 		loggerEx cli "John's fork detected - service-event requires 374.43_32D6j9527 or later. Please update to the latest version."
-		finalcheck=1
+		finalcheck=$env_enable
 	fi
 
 	return $finalcheck
@@ -1862,7 +1863,7 @@ script_check_config() {
 	cfgmd5=$(md5sum $script_config | awk '{print $1}')
 
 	if [ "$svdmd5" != "$cfgmd5" ]; then
-		loggerEx cli "Configuration change detected on .config file. Applying changes."
+		loggerEx cli "Configuration change detected on .config file."
 
 		for bri_name in $(gethw_bri_enabled); do
 			script_lock create # Lock script to prevent duplication
@@ -1940,6 +1941,7 @@ script_diagnostics() {
 	printf " - list of settings in device memory (nvram)\\n"
 	printf " - list of ethernet bridges (brctl)\\n"
 	printf " - list of network interfaces (ifconfig)\\n"
+	printf " - list of ip routing tabble (ip route)\\n"
 	printf " - list of packet filtering and NAT rules (iptables)\\n"
 	printf " - list of ethernet bridge frame rules (ebtables)\\n"
 	printf " - %s configuration file (%s)\\n" $script_name $script_config
@@ -1979,6 +1981,10 @@ script_diagnostics() {
 
 	# List of network interfaces
 	ifconfig -a > "$script_diag/ifconfig.txt"
+
+	ip route show > "$script_diag/iproute.txt"
+	echo "" >> "$script_diag/iproute.txt"
+	ip route show table all >> "$script_diag/iproute.txt"
 
 	# List of packet filtering and NAT rules
 	iptables-save > "$script_diag/iptables.txt"
@@ -2056,13 +2062,15 @@ script_install () {
 
 	loggerEx clio "Script($script_name $script_version) installation complete."
 	while true; do
-		printf "\\nDo you want to run config? (y/n): "
+		printf "Do you want to run config? (y/n): "
 		read -r key
 		case "$key" in
 			y|Y)
 				script_lock delete # Unlock script
 				
 				sh "$script_xdir/$script_name" run-config
+
+				loggerEx clio "Configuration complete."
 				break
 			;;
 			n|N)
@@ -2095,9 +2103,9 @@ script_lock() {
 				else
 					loggerEx "Error. Lock file found (age: $lkage seconds). Stopping to prevent duplication."
 					if [ $# -eq 1 ] || [ -z "$2" ]; then
-						exit 1 # Error or NOK
+						exit $env_error # NOK
 					else
-						return 1 # Error or NOK
+						return $env_error # NOK
 					fi
 				fi
 			else
@@ -2136,12 +2144,13 @@ script_update() {
 					script_lock delete # Unlock script
 					
 					loggerEx cli "Update script($script_name) complete. Starting install procedure."
-					pause
 
 					sh "$dwfile" install
 					break
 				;;
-				n|N) break ;;
+				n|N) 
+					break 
+				;;
 				*) 
 					printf "\\nPlease choose a valid option.\\n\\n"
 				;;
@@ -2252,7 +2261,10 @@ show_menu() {
 					read -r conf
 					case "$conf" in
 						y|Y) script_check_config ;;
-						*)   break ;;
+						n|N) break ;;
+						*) 
+							printf "\\nPlease choose a valid option.\\n\\n"
+						;;
 					esac
 				done
 			;;
@@ -2274,7 +2286,7 @@ show_menu() {
 			;;
 			e)
 				show_banner
-				printf "\\n Thanks for using %s!\\n\\n" "$script_name"
+				printf "\\nThanks for using %s!\\n\\n" "$script_name"
 				exit 0
 			;;
 			z)
@@ -2291,7 +2303,10 @@ show_menu() {
 							script_lock delete # Unlock script
 							exit 0
 						;;
-						*)  break ;;
+						n|N) break ;;
+						*) 
+							printf "\\nPlease choose a valid option.\\n\\n"
+						;;
 					esac
 				done
 			;;
@@ -2340,7 +2355,6 @@ case "$1" in
 		# Check script configuration changes.
 		script_check_config
 
-		pause
 		exit 0
 	;;
 	cu|check-update)
@@ -2362,7 +2376,7 @@ case "$1" in
 	lc|list-clients)
 
 		# Cycle from every allowed bridges, print header and list Guest clients. 
-		printf "%-15s %-15s %-20s %-20s %-20s\n" "bridge name" "interfaces" "client IP address" "client MAC address" "client Name"
+		printf "%-15s %-15s %-20s %-20s %-20s\n" "bridge name" "interfaces" "client IP address" "client MAC address" "client name"
 		for bri_name in $(gethw_bri_enabled); do
 			
 			wlif_listclients "$bri_name"
@@ -2407,7 +2421,6 @@ case "$1" in
 		# Execute the script update instructions.
 		script_update
 
-		pause
 		exit 0
 	;;
 	uninstall)
@@ -2417,7 +2430,6 @@ case "$1" in
 		script_uninstall
 
 		script_lock delete # Unlock script
-		pause
 		exit 0
 	;;
 	about)
@@ -2433,6 +2445,6 @@ case "$1" in
 	;;
 	*)
 		printf "Error: Invalid script arguments"
-		exit 1
+		exit $env_error
 	;;
 esac

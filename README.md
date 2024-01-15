@@ -2,7 +2,7 @@
 AsusWRT-Merlin feature expansion that automatically creates separated subnets from lan network, based on the active guest network and settings.
 
 ## v1.0.0
-### Updated on 2023-12-29
+### Updated on 2024-01-15
 ## About
 Feature expansion of Guest networks on AsusWRT-Merlin, including, but not limited to:
 
