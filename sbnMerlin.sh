@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2024-Jan-15].
+# Last Modified: janico82 [2024-Jan-18].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -258,25 +258,46 @@ convert_netaddr() {
     echo "$network_address/$(convert_cidr "$netmask")"
 }
 
-getconf_bri_allowinternet() {
+getconf_bri_allow_internet() {
 
 	# Get config settings from nvram, if exists
-	bri_allowinternet="$(nvram get "${1}_allowinternet")"
+	bri_allow_internet="$(nvram get "${1}_allow_internet")"
 
 	# Get config settings from file, if exists
-	if { [ -z "$bri_allowinternet" ] || [ "$2" = "sc" ]; } && [ -f $script_config ]; then
+	if { [ -z "$bri_allow_internet" ] || [ "$2" = "sc" ]; } && [ -f $script_config ]; then
 
 		. $script_config
-		bri_allowinternet="$(eval echo '$'"${1}_allowinternet")"
+		bri_allow_internet="$(eval echo '$'"${1}_allow_internet")"
 	fi
 
 	# Get defaults
-	if [ -z $bri_allowinternet ] || ! validate_binary "$bri_allowinternet" ; then
-		bri_allowinternet=$env_disable
-		loggerEx "Error: Invalid configuration gathered, using defaults($bri_allowinternet)."
+	if [ -z $bri_allow_internet ] || ! validate_binary "$bri_allow_internet" ; then
+		bri_allow_internet=$env_disable
+		loggerEx "Error: Invalid configuration gathered, using defaults($bri_allow_internet)."
 	fi
 
-	echo $bri_allowinternet
+	echo $bri_allow_internet
+}
+
+getconf_bri_allow_onewayaccess() {
+
+	# Get config settings from nvram, if exists
+	bri_allow_onewayaccess="$(nvram get "${1}_allow_onewayaccess")"
+
+	# Get config settings from file, if exists
+	if { [ -z "$bri_allow_onewayaccess" ] || [ "$2" = "sc" ]; } && [ -f $script_config ]; then
+
+		. $script_config
+		bri_allow_onewayaccess="$(eval echo '$'"${1}_allow_onewayaccess")"
+	fi
+
+	# Get defaults
+	if [ -z $bri_allow_onewayaccess ] || ! validate_binary "$bri_allow_onewayaccess" ; then
+		bri_allow_onewayaccess=$env_disable
+		loggerEx "Error: Invalid configuration gathered, using defaults($bri_allow_onewayaccess)."
+	fi
+
+	echo $bri_allow_onewayaccess
 }
 
 getconf_bri_ap_isolate() {
@@ -1354,7 +1375,8 @@ firewall_config() {
 	bri_ipaddr=$(getconf_bri_ipaddr "$bri_name")
 	bri_netmask=$(getconf_bri_netmask "$bri_name")
 	bri_netaddr=$(convert_netaddr "$bri_ipaddr" "$bri_netmask")
-	bri_allowinternet=$(getconf_bri_allowinternet "$bri_name")
+	bri_allow_internet=$(getconf_bri_allow_internet "$bri_name")
+	bri_allow_onewayaccess=$(getconf_bri_allow_onewayaccess "$bri_name")
 
 	https_lanport="$(nvram get https_lanport)"
 	sshd_port="$(nvram get sshd_port)"
@@ -1391,6 +1413,11 @@ firewall_config() {
 		eval "iptables -t nat -D $ipline"
 	done
 
+	# Remove nvram values
+	nvram unset "${bri_name}_allow_internet"
+	nvram unset "${bri_name}_allow_onewayaccess"
+	nvram commit
+
 	if [ $action = "-I" ]; then
 
 		# Provides support for adding comments to rules in iptables
@@ -1414,19 +1441,26 @@ firewall_config() {
 		iptables "$action" FORWARD -i "$bri_name" -o "$bri_name" -m comment --comment "($script_name)" -j ACCEPT
 
 		# Allow packet forwarding between bridge and wan (internet access).
-		if [ $bri_allowinternet = 1 ]; then
+		if [ $bri_allow_internet -eq $env_enable ]; then
 			iptables "$action" FORWARD -i "$bri_name" -o "$wan0_ifname" -m comment --comment "($script_name)" -j ACCEPT
 		fi
 
 		# Allow one-way traffic from lan to bridge.
-#		iptables -I FORWARD -i "$lan_ifname -o "$bri_name" -j ACCEPT
-#		iptables -I FORWARD -i "$bri_name" -o "$lan_ifname" -m state --state RELATED,ESTABLISHED -j ACCEPT
+		if [ $bri_allow_onewayaccess -eq $env_enable ]; then
+			iptables -I FORWARD -i "$lan_ifname" -o "$bri_name" -m comment --comment "($script_name)" -j ACCEPT
+			iptables -I FORWARD -i "$bri_name" -o "$lan_ifname" -m state --state RELATED,ESTABLISHED -m comment --comment "($script_name)" -j ACCEPT
+		fi
 
 		# Allow multicast address
 		iptables "$action" INPUT -i "$bri_name" -d 224.0.0.0/4 -j ACCEPT
 
 		# NAT inside ip address on bridge.
 		iptables -t nat "$action" POSTROUTING -s "$bri_netaddr" -d "$bri_netaddr" -o "$bri_name" -m comment --comment "($script_name)" -j MASQUERADE
+
+		# Setup nvram values for bridge
+		nvram set "${bri_name}_allow_internet"="$bri_allow_internet"
+		nvram set "${bri_name}_allow_onewayaccess"="$bri_allow_onewayaccess"
+		nvram commit
 	fi
 
 	loggerEx "Applying Ethernet Bridge and Packet Filtering custom scripts for bridge($bri_name)."
@@ -1543,7 +1577,7 @@ wlif_listclients() {
 	# Checks for clients connected in the bridge.
 	if [ -z "$arpdump" ] || [ -z "${arpdump##*No match found*}" ] ; then
 
-		printf "No clients connected on bridge(%s).\n" $bri_name
+		printf "No clients on bridge(%s).\n" $bri_name
 		return $env_error # NOK
 	fi
 
@@ -1572,17 +1606,23 @@ wlif_listclients() {
 		done
 	done
 
+	# Reset variables
+	unset ipaddr
+	unset macaddr
+	unset hostname
+
 	# Cycle through the remaining arp entries.
 	if [ -n "$arpdump" ]; then
 
 		echo "$arpdump" | while IFS= read -r arpentry; do
 
 			ipaddr="$(echo "$arpentry" | awk '{print $2}' | sed -e 's/(//g;s/)//g')"
+			macaddr="$(echo "$arpentry" | awk '{print $4}' | awk '{print toupper($0)}')" 
 			hostname="$(echo "$arpentry" | awk '{print $1}')"
 			if [ $hostname = "?" ]; then hostname="$(nslookup $ipaddr $bri_ipaddr | awk 'END{print $NF}' | xargs)"; fi
 			if [ -z "$hostname" ]; then  hostname="Unknown"; fi
 
-			printf "%-15s %-15s %-20s %-20s %-20s\n" $bri_name "ether" $ipaddr $macaddr $hostname
+			printf "%-15s %-15s %-20s %-20s %-20s\n" $bri_name "ethernet" $ipaddr $macaddr $hostname
 		done
 	fi
 
@@ -1888,6 +1928,17 @@ script_check_config() {
 				nvram commit
 
 				dhcp_config create "$bri_name"
+			fi
+
+			if [ "$(getconf_bri_allow_internet "$bri_name" nv)" != "$(getconf_bri_allow_internet "$bri_name" sc)" ] || [ "$(getconf_bri_allow_onewayaccess "$bri_name" nv)" != "$(getconf_bri_allow_onewayaccess "$bri_name" sc)" ]; then
+				loggerEx cli "Configuration change detected on bridge($bri_name) firewall settings. Applying changes."
+
+				# Setting new values in nvram
+				nvram set "${bri_name}_allow_internet"="$(getconf_bri_allow_internet "$bri_name" sc)"
+				nvram set "${bri_name}_allow_onewayaccess"="$(getconf_bri_allow_onewayaccess "$bri_name" sc)"
+				nvram commit
+
+				firewall_config create "$bri_name"
 			fi
 
 			if [ "$(getconf_bri_ap_isolate "$bri_name" nv)" != "$(getconf_bri_ap_isolate "$bri_name" sc)" ]; then

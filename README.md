@@ -2,14 +2,14 @@
 AsusWRT-Merlin feature expansion that automatically creates separated subnets from lan network, based on the active guest network and settings.
 
 ## v1.0.0
-### Updated on 2024-01-15
+### Updated on 2024-01-18
 ## About
 Feature expansion of Guest networks on AsusWRT-Merlin, including, but not limited to:
 
 *   Automatic creation of ethernet bridge instances, based on active guest wireless.
 *   Allow manage wifi interface isolation included in the bridge instance.
 *   Include other ethernet ports in the bridge instance.
-*   Allow Internet access for the bridge instance.
+*   Allow Internet and one-way access for the bridge instance.
 *   Allow custom DHCP settings for the bridge instance.
 *   Allow ethernet bridge and packet filtering rules for the bridge instance.
 
@@ -100,7 +100,7 @@ sbnMerlin automatism is based on the following rules, sbMerlin creates:
 * ethernet bridge(br9) instance if both wireless interfaces(wl0.3, wl1.3) are enabled and with lan access disabled.
 
 #### {bridge}_enabled
-Enable the bridge (0=False/1=True). Example: br8_enabled=1
+Bridge configuration enabled. (0=False/1=True/Default=0). Example: br8_enabled=1
 
 #### {bridge}_ifnames
 List of interface(s) names that will be port(s) of the bridge. Example: br8_ifnames="wl0.2 wl1.2 eth2 eth4"
@@ -123,10 +123,13 @@ IP address reservation of the bridge. Example: br8_staticlist=\<ab:cd:ef:01:23:4
 Syntax: \<MAC Address\>IP Address\>DNS Server (Optional)\>Host Name (Optional)
 
 #### {bridge}_ap_isolate
-When this feature is enabled, wireless clients or devices will not be able to communicate with each other. (0=False/1=True) Example: br8_ap_isolate=1
+When this feature is enabled, wireless clients or devices will not be able to communicate with each other. (0=False/1=True/Default=1) Example: br8_ap_isolate=1
 
-#### {bridge}_allowinternet
-Allow Internet access for the bridge devices. (0=False/1=True) Example: br8_allowinternet=1
+#### {bridge}_allow_internet
+Allow Internet access for the bridge devices. (0=False/1=True/Default=0) Example: br8_allow_internet=1
+
+#### {bridge}_allow_onewayaccess
+Allow one-way access for the bridge devices. (0=False/1=True/Default=0) Example: br8_allow_onewayaccess=1
 
 ### Custom ethernet bridge and packet filtering rules
 sbnMerlin supports custom scripts after setting up the device firewall for each bridge. To use this feature, create the custom script file in the appropriate directory with the following syntax: {bridge}_{iptables or ebtables}.sh extension. e.g.
