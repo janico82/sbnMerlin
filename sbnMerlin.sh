@@ -18,11 +18,13 @@
 #--------------------------------------------------
 
 # Shellcheck directives #
+# shellcheck disable=SC1087
 # shellcheck disable=SC1090
 # shellcheck disable=SC2005
 # shellcheck disable=SC2016
 # shellcheck disable=SC2034
 # shellcheck disable=SC2086
+# shellcheck disable=SC2129
 # shellcheck disable=SC2317
 # shellcheck disable=SC3045
 
