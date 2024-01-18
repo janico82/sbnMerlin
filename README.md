@@ -54,7 +54,7 @@ You must be running firmware no older than:
 Using your preferred SSH client/terminal, copy and paste the following command, then press Enter:
 
 ```sh
-/usr/sbin/curl -fsL --retry 3 "https://janico82.gateway.scarf.sh/asuswrt-merlin/dev/sbnMerlin.sh" -o /jffs/scripts/sbnMerlin && chmod 0755 /jffs/scripts/sbnMerlin && /jffs/scripts/sbnMerlin install
+/usr/sbin/curl -fsL --retry 3 "https://janico82.gateway.scarf.sh/asuswrt-merlin/master/sbnMerlin.sh" -o /jffs/scripts/sbnMerlin && chmod 0755 /jffs/scripts/sbnMerlin && /jffs/scripts/sbnMerlin install
 ```
 
 Please then follow instructions shown on-screen.

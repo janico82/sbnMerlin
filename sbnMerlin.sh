@@ -35,7 +35,7 @@ readonly script_diag="/tmp/$script_name"
 readonly script_config="$script_dir/$script_name.conf"
 readonly script_md5="$script_dir/$script_name.md5"
 readonly script_version="1.0.0"
-readonly script_branch="dev"
+readonly script_branch="master"
 readonly script_repo="https://janico82.gateway.scarf.sh/asuswrt-merlin/$script_name/$script_branch"
 
 readonly log_file="$script_dir/$script_name.log"
