@@ -92,12 +92,12 @@ Choose an option:
 sbnMerlin automatically creates ethernet bridge instances {bridge} for network isolation, and for each bridge it's possible to define a set of configurations, detailed below. The allowed ethernet bridge instances are: br3, br4, br5, br6, br8 and br9.
 
 sbnMerlin automatism is based on the following rules, sbMerlin creates:
-* ethernet bridge(br3) instance if the wireless interface(wl0.2) is enabled and with lan access disabled.
-* ethernet bridge(br4) instance if the wireless interface(wl1.2) is enabled and with lan access disabled.
-* ethernet bridge(br5) instance if the wireless interface(wl0.3) is enabled and with lan access disabled.
-* ethernet bridge(br6) instance if the wireless interface(wl1.3) is enabled and with lan access disabled.
-* ethernet bridge(br8) instance if both wireless interfaces(wl0.2, wl1.2) are enabled and with lan access disabled.
-* ethernet bridge(br9) instance if both wireless interfaces(wl0.3, wl1.3) are enabled and with lan access disabled.
+*   ethernet bridge(br3) instance if the wireless interface(wl0.2) is enabled and with lan access disabled.
+*   ethernet bridge(br4) instance if the wireless interface(wl1.2) is enabled and with lan access disabled.
+*   ethernet bridge(br5) instance if the wireless interface(wl0.3) is enabled and with lan access disabled.
+*   ethernet bridge(br6) instance if the wireless interface(wl1.3) is enabled and with lan access disabled.
+*   ethernet bridge(br8) instance if both wireless interfaces(wl0.2, wl1.2) are enabled and with lan access disabled.
+*   ethernet bridge(br9) instance if both wireless interfaces(wl0.3, wl1.3) are enabled and with lan access disabled.
 
 #### {bridge}_enabled
 Bridge configuration enabled. (0=False/1=True/Default=0). Example: br8_enabled=1
