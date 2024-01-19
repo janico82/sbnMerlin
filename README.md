@@ -42,6 +42,7 @@ sbnMerlin is free to use under the [GNU General Public License version 3](https:
 ### Supporting development
 Love the script and want to support future development? Any and all donations gratefully received!
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/29cdefd5255d45cfb7b9ee2f488075ae)](https://app.codacy.com/gh/janico82/sbnMerlin?utm_source=github.com&utm_medium=referral&utm_content=janico82/sbnMerlin&utm_campaign=Badge_Grade)
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate/?business=7GJ9GM39PF3NS&no_recurring=0&item_name=for+support+of+continued+development+of+Asuswrt-Merlin+addons&currency_code=EUR)
 
 ## Supported firmware versions
