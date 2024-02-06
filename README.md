@@ -1,8 +1,9 @@
 # sbnMerlin - automatic subnet creation for AsusWRT-Merlin Guest Networks
-AsusWRT-Merlin feature expansion that automatically creates separated subnets from lan network, based on the active guest network and settings.
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/96872a441a714fc6b88d6e58609461d1)](https://app.codacy.com/gh/janico82/sbnMerlin/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+![Shellcheck](https://github.com/janico82/sbnMerlin/actions/workflows/shellcheck.yml/badge.svg)
 
-## v1.0.0
-### Updated on 2024-01-18
+## v1.0.1
+### Updated on 2024-02-06
 ## About
 Feature expansion of Guest networks on AsusWRT-Merlin, including, but not limited to:
 
