@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2024-Jan-18].
+# Last Modified: janico82 [2024-Feb-06].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -36,7 +36,7 @@ readonly script_xdir="/jffs/scripts"
 readonly script_diag="/tmp/$script_name"
 readonly script_config="$script_dir/$script_name.conf"
 readonly script_md5="$script_dir/$script_name.md5"
-readonly script_version="1.0.0"
+readonly script_version="1.0.1"
 readonly script_branch="master"
 readonly script_repo="https://janico82.gateway.scarf.sh/asuswrt-merlin/$script_name/$script_branch"
 
@@ -110,7 +110,7 @@ loggerEx() {
 
 compare_ssid() {
 
-	# Confirm the bridge name is valid. Usage: compare_ssid wl0.2 wl1.2
+	# Confirm the ssid are equal. Usage: compare_ssid wl0.2 wl1.2
 	if [ $# -ne 2 ] || [ "$(nvram get "${1}_ssid")" != "$(nvram get "${2}_ssid")" ]; then
 		return $env_error # NOK or the ssid are not equal
 	else 
@@ -120,7 +120,7 @@ compare_ssid() {
 
 validate_binary() {
 
-	# Confirm the bridge name is valid. Usage: validate_binary 1
+	# Confirm the value is binary. Usage: validate_binary 1
 	if [ $# -ne 1 ] || ! echo "$1" | grep -qE "^$env_regex_binary$" ; then
 		return $env_error # NOK
 	else
@@ -150,7 +150,7 @@ validate_ifname() {
 
 validate_ifnames() {
 
-	# Confirm the interface names are valid. Usage: validate_ifnames "wl0.1 wl1.1"
+	# Confirm the interface names are valid. Usage: validate_ifnames wl0.1 wl1.1
 	for if_name in $1; do
 
 		if ! validate_ifname "$if_name" ; then
@@ -193,7 +193,7 @@ validate_macaddr() {
 
 validate_netmask() {
 
-	# Confirm the ip address is valid. Usage: validate_netmask 255.255.255.0
+	# Confirm the network mask address is valid. Usage: validate_netmask 255.255.255.0
 	if [ $# -ne 1 ] || ! echo "$1" | grep -qE "^$env_regex_netmask$" ; then
 		return $env_error # NOK or not valid 
 	else
@@ -213,7 +213,7 @@ validate_netname() {
 
 validate_number() {
 
-	# Confirm the computer name is valid. Usage: validate_number 32
+	# Confirm the value is valid. Usage: validate_number 32
 	if [ $# -ne 1 ] || ! echo "$1" | grep -qE "^$env_regex_number$" ; then
 		return $env_error # NOK or not valid 
 	else
@@ -2236,6 +2236,9 @@ script_uninstall() {
 	evfile_firewall_start delete 2>/dev/null
 	evfile_service_event_end delete 2>/dev/null
 	evfile_services_start delete 2>/dev/null
+
+    # Remove script file
+	rm -f "$script_xdir/$script_name" 2>/dev/null
 
 	loggerEx clio "Script($script_name $script_version) uninstall complete."
 }
