@@ -78,7 +78,7 @@ sh /jffs/scripts/sbnMerlin
 ##                                                         ##
 #############################################################
    sbnMerlin Main menu - version: 1.0.0
-   1.   Edit configuration
+   1.   Edit configuration (default editor: vi)
    2.   Run configuration
    d.   Run diagnostics
    u.   Update check
@@ -91,6 +91,11 @@ Choose an option:
 ## FAQs
 ### Details of sbnMerlin configuration items:
 sbnMerlin automatically creates ethernet bridge instances {bridge} for network isolation, and for each bridge it's possible to define a set of configurations, detailed below. The allowed ethernet bridge instances are: br3, br4, br5, br6, br8 and br9.
+
+The configuration file is located at:
+```sh
+/jffs/addons/sbnMerlin.d/sbnMerlin.conf
+```
 
 sbnMerlin automatism is based on the following rules, sbMerlin creates:
 *   ethernet bridge(br3) instance if the wireless interface(wl0.2) is enabled and with lan access disabled.
