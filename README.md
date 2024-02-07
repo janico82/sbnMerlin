@@ -64,7 +64,7 @@ Please then follow instructions shown on-screen.
 ### Command Line
 To launch the sbnMerlin menu after installation, use:
 ```sh
-sbnMerlin
+sh /jffs/scripts/sbnMerlin
 ```
 ```sh
 #############################################################
