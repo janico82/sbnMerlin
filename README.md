@@ -1,34 +1,65 @@
-# sbnMerlin - automatic subnet creation for AsusWRT-Merlin Guest Networks
+# sbnMerlin - automatic network isolation using ethernet bridge instances for AsusWRT-Merlin Guest Networks
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/96872a441a714fc6b88d6e58609461d1)](https://app.codacy.com/gh/janico82/sbnMerlin/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 ![Shellcheck](https://github.com/janico82/sbnMerlin/actions/workflows/shellcheck.yml/badge.svg)
 
-## v1.0.1
-### Updated on 2024-02-06
+## v1.1.0
+### Updated on 2024-03-01
 ## About
-Feature expansion of Guest networks on AsusWRT-Merlin, including, but not limited to:
+Feature expansion of Wireless guest networks (wl0.2, wl0.3, wl1.2 and wl1.3) on AsusWRT-Merlin, that allows to:
+*   Automatic creation of ethernet bridge instances, based on active guest wireless networks and settings.
+*   Manage wireless interface isolation, for the interfaces mapped in the bridge instance.
+*   Map other ethernet interfaces to the bridge instance.
+*   Manage Internet and one-way access for the bridge instance.
+*   Custom DHCP settings for the bridge instance.
+*   Custom ethernet bridge and packet filtering rules for the bridge instance.
 
-*   Automatic creation of ethernet bridge instances, based on active guest wireless.
-*   Allow manage wifi interface isolation included in the bridge instance.
-*   Include other ethernet ports in the bridge instance.
-*   Allow Internet and one-way access for the bridge instance.
-*   Allow custom DHCP settings for the bridge instance.
-*   Allow ethernet bridge and packet filtering rules for the bridge instance.
+For ethernet bridge instances created by AsusWRT-Merlin (br1 and br2), that allows to:
+*   Manage wireless interface isolation, for the interfaces mapped in the bridge instance.
+*   Map other ethernet interfaces to the bridge instance.
+*   Manage Internet and one-way access for the bridge instance.
+*   Custom ethernet bridge and packet filtering rules for the bridge instance.
 
 Running configuration example:
 ```sh
-root:/jffs/scripts# brctl show
+root:/tmp/home/root# brctl show
 bridge name     bridge id               STP enabled     interfaces
-br0             8000.04421xxxxxxx       yes             eth1
+br0             8000.04421xxxxxxx       no              eth1
                                                         eth3
                                                         eth5
                                                         eth6
+                                                        eth6.0
                                                         eth7
-br8             8000.04421xxxxxxy       yes             eth2
+                                                        eth7.0                                                        
+br1             8000.04421xxxxxxx       yes             eth1.501
+                                                        eth3.501
+                                                        eth5.501
+                                                        eth6.501
+                                                        eth7.501
+                                                        wl0.1
+br8             8000.04421xxxxxxx       yes             eth2
                                                         eth4
                                                         wl0.2
                                                         wl1.2
 
-root:/jffs/scripts# ifconfig br8
+root:/tmp/home/root# ifconfig br0
+br0       Link encap:Ethernet  HWaddr ab:cb:ef:01:23:45
+          inet addr:192.168.50.1  Bcast:192.168.50.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING ALLMULTI MULTICAST  MTU:1500  Metric:1
+          RX packets:379423 errors:0 dropped:8 overruns:0 frame:0
+          TX packets:770385 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0
+          RX bytes:92423595 (88.1 MiB)  TX bytes:375266405 (357.8 MiB)
+
+root:/tmp/home/root# ifconfig br1
+br1       Link encap:Ethernet  HWaddr ab:cb:ef:01:23:45
+          inet addr:192.168.101.1  Bcast:192.168.101.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING ALLMULTI MULTICAST  MTU:1500  Metric:1
+          RX packets:444 errors:0 dropped:444 overruns:0 frame:0
+          TX packets:63605 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0
+          RX bytes:26640 (26.0 KiB)  TX bytes:9386700 (8.9 MiB)
+
+root:/tmp/home/root# ifconfig br8
 br8       Link encap:Ethernet  HWaddr ab:cb:ef:01:23:45
           inet addr:192.168.108.1  Bcast:192.168.108.255  Mask:255.255.255.0
           UP BROADCAST RUNNING ALLMULTI MULTICAST  MTU:1500  Metric:1
@@ -77,7 +108,7 @@ sh /jffs/scripts/sbnMerlin
 ##          https://github.com/janico82/sbnMerlin          ##
 ##                                                         ##
 #############################################################
-   sbnMerlin Main menu - version: 1.0.0
+   sbnMerlin Main menu - version: x.x.x
    1.   Edit configuration (default editor: vi)
    2.   Run configuration
    d.   Run diagnostics
@@ -90,14 +121,17 @@ Choose an option:
 
 ## FAQs
 ### Details of sbnMerlin configuration items:
-sbnMerlin automatically creates ethernet bridge instances {bridge} for network isolation, and for each bridge it's possible to define a set of configurations, detailed below. The allowed ethernet bridge instances are: br3, br4, br5, br6, br8 and br9.
+sbnMerlin automatically creates ethernet bridge instances {bridge} for network isolation, based on the active Guest Networks. An ethernet bridge is a device commonly used to aggregate other individual ethernets (like: eth1, eth2, wl0.1, …) into one bigger ('logical') ethernet, this bigger ethernet corresponds to the bridge network interface. So it’s possible to create automatic separated networks allowing to isolate Guest Network traffic from the main network (lan).
+The allowed ethernet bridge instances are: br3, br4, br5, br6, br8 and br9, and for each bridge it's possible to define a set of configurations, detailed below. 
 
 The configuration file is located at:
 ```sh
 /jffs/addons/sbnMerlin.d/sbnMerlin.conf
 ```
 
-sbnMerlin automatism is based on the following rules, sbMerlin creates:
+It's possible to use sbnMerlin default editor for managing configuration items, or your prefered editor. sbnMerlin checks every 10 minutes for changes in the configuration file. If you need to apply a configuration immediately, use the sbnMerlin menu.
+
+sbnMerlin automatism is based on the following rules. sbMerlin creates:
 *   ethernet bridge(br3) instance if the wireless interface(wl0.2) is enabled and with lan access disabled.
 *   ethernet bridge(br4) instance if the wireless interface(wl1.2) is enabled and with lan access disabled.
 *   ethernet bridge(br5) instance if the wireless interface(wl0.3) is enabled and with lan access disabled.
@@ -109,7 +143,7 @@ sbnMerlin automatism is based on the following rules, sbMerlin creates:
 Bridge configuration enabled. (0=False/1=True/Default=0). Example: br8_enabled=1
 
 #### {bridge}_ifnames
-List of interface(s) names that will be port(s) of the bridge. Example: br8_ifnames="wl0.2 wl1.2 eth2 eth4"
+List of interface(s) names that will be mapped to the bridge. Example: br8_ifnames="eth2 eth4"
 
 #### {bridge}_ipaddr
 IP address setting of the bridge. Example: br8_ipaddr="192.168.108.1"
@@ -137,20 +171,38 @@ Allow Internet access for the bridge devices. (0=False/1=True/Default=0) Example
 #### {bridge}_allow_onewayaccess
 Allow one-way access for the bridge devices. (0=False/1=True/Default=0) Example: br8_allow_onewayaccess=1
 
-### Custom ethernet bridge and packet filtering rules
-sbnMerlin supports custom scripts after setting up the device firewall for each bridge. To use this feature, create the custom script file in the appropriate directory with the following syntax: {bridge}_{iptables or ebtables}.sh extension. e.g.
+#### {bridge}_allow_routeraccess
+Allow bridge access to router services without explicit rules (or implicit deny). (0=False/1=True/Default=0) Example: br8_allow_routeraccess=1
+
+### Custom packet filtering rules
+sbnMerlin supports custom files after setting up the device firewall for each bridge. To use this feature, create the custom file in the appropriate directory with the following syntax: {bridge}_iptables.{filter or nat} extension. e.g.
 ```sh
-/jffs/addons/sbnMerlin.d/uscripts/br8_iptables.sh
+/jffs/addons/sbnMerlin.d/cscripts/br8_iptables.filter
 ```
-Remember to make it executable with
+Custom rule example to allow bridge access to router services: remote management web and ssh ports
 ```sh
-chmod +x /jffs/addons/sbnMerlin.d/uscripts/br8_iptables.sh
+# Get remote management ports for web and ssh, using CLI.
+root:/tmp/home/root# nvram get https_lanport
+8443
+root:/tmp/home/root# nvram get sshd_port
+22
+
+# Rule example in br8_iptables.filter file.
+INPUT -i br8 -p tcp -m tcp --dport 8443 -j ACCEPT
+INPUT -i br8 -p tcp -m tcp --dport 22 -j ACCEPT
 ```
-An example script to allow bridge access to router services: ntp
+Custom rule example to allow bridge access to router services: openvpn 
 ```sh
-#!/bin/sh
-iptables -I INPUT -i br8 -p udp -m multiport --dports 123 -m comment --comment "(sbnMerlin)" -j ACCEPT
+# Get openvpn ports, with CLI.
+root:/tmp/home/root# nvram get vpn_server1_proto (or vpn_server2_proto)
+udp
+root:/tmp/home/root# nvram get vpn_server1_port (or vpn_server2_port)
+1194
+
+# Rule example in br8_iptables.filter file.
+INPUT -i br8 -p udp -m udp --dport 1194 -j ACCEPT
 ```
+
 
 ## Scarf Gateway
 Installs and updates for this addon are redirected via the [Scarf Gateway](https://about.scarf.sh/scarf-gateway) by [Scarf](https://about.scarf.sh/about). This allows gather data on the number of new installations of this addon or how often users check for updates. Scarf Gateway functions similarly to a link shortener like bit.ly, redirecting traffic as a domain gateway.
