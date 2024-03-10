@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2024-Mar-01].
+# Last Modified: janico82 [2024-Mar-10].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -36,7 +36,7 @@ readonly script_xdir="/jffs/scripts"
 readonly script_diag="/tmp/$script_name"
 readonly script_config="$script_dir/$script_name.conf"
 readonly script_md5="$script_dir/$script_name.md5"
-readonly script_version="1.1.0"
+readonly script_version="1.1.1"
 readonly script_branch="master"
 readonly script_repo="https://janico82.gateway.scarf.sh/asuswrt-merlin/$script_name/$script_branch"
 
@@ -723,16 +723,16 @@ evfile_service_event_end() {
 				if [ "$filelinecount" -gt 0 ]; then
 					sed -i -e '/# ('"$script_name"')/d' "$evfile"
 				fi
-				
+
 				{
-				 echo 'if [ "$1" == "restart" ] && [ "$2" == "wireless" ]; then { '"$script_xdir"'/'"$script_name"' run-config & }; fi # '"($script_name) Network Isolation Tool"
+				 echo 'if [ "$1" = "restart" ] && { [ "$2" = "wireless" ] || [ "$2" = "net_and_phy" ]; }; then { '"$script_xdir"'/'"$script_name"' run-config & }; fi # '"($script_name) Network Isolation Tool"
 				 echo 'if { [ "$1" = "start" ] || [ "$1" = "restart" ]; } && [ "$2" = "firewall" ]; then { '"$script_xdir"'/'"$script_name"' run-firewall & }; fi # '"($script_name) Network Isolation Tool"
 				} >> "$evfile"
 			else
 				{
 				 echo "#!/bin/sh"
 				 echo ""
-				 echo 'if [ "$1" == "restart" ] && [ "$2" == "wireless" ]; then { '"$script_xdir"'/'"$script_name"' run-config & }; fi # '"($script_name) Network Isolation Tool"
+				 echo 'if [ "$1" = "restart" ] && { [ "$2" = "wireless" ] || [ "$2" = "net_and_phy" ]; }; then { '"$script_xdir"'/'"$script_name"' run-config & }; fi # '"($script_name) Network Isolation Tool"
 				 echo 'if { [ "$1" = "start" ] || [ "$1" = "restart" ]; } && [ "$2" = "firewall" ]; then { '"$script_xdir"'/'"$script_name"' run-firewall & }; fi # '"($script_name) Network Isolation Tool"
 				} > "$evfile"
 				chmod 0755 $evfile
@@ -1844,7 +1844,7 @@ configEx() {
 	# Confirm bridges(br3, br4, br8) enabled and delete unnecessary
 	if bridge_enabled br3 ; then
 
-		if ! wlif_enabled wl0.2 || wlif_lanaccess wl0.2 || [ "$(getconf_bri_enabled br3 sc)" = $env_disable ]; then
+		if ! wlif_enabled wl0.2 || wlif_lanaccess wl0.2 || (wlif_enabled wl1.2 && ! wlif_lanaccess wl1.2 && compare_ssid wl0.2 wl1.2) || [ "$(getconf_bri_enabled br3 sc)" = $env_disable ]; then
 
 			firewall_config delete br3
 			bridge_ifname_config delete br3
@@ -1853,7 +1853,7 @@ configEx() {
 	fi
 	if bridge_enabled br4 ; then
 
-		if ! wlif_enabled wl1.2 || wlif_lanaccess wl1.2 || [ "$(getconf_bri_enabled br4 sc)" = $env_disable ]; then
+		if ! wlif_enabled wl1.2 || wlif_lanaccess wl1.2 || (wlif_enabled wl0.2 && ! wlif_lanaccess wl0.2 && compare_ssid wl0.2 wl1.2)|| [ "$(getconf_bri_enabled br4 sc)" = $env_disable ]; then
 
 			firewall_config delete br4
 			bridge_ifname_config delete br4
@@ -1872,7 +1872,7 @@ configEx() {
 	# Confirm bridges(br5, br6, br9) enabled and delete unnecessary
 	if bridge_enabled br5 ; then
 
-		if ! wlif_enabled wl0.3 || wlif_lanaccess wl0.3 || [ "$(getconf_bri_enabled br5 sc)" = $env_disable ]; then
+		if ! wlif_enabled wl0.3 || wlif_lanaccess wl0.3 || (wlif_enabled wl1.3 && ! wlif_lanaccess wl1.3 && compare_ssid wl0.3 wl1.3) || [ "$(getconf_bri_enabled br5 sc)" = $env_disable ]; then
 
 			firewall_config delete br5
 			bridge_ifname_config delete br5
@@ -1881,7 +1881,7 @@ configEx() {
 	fi
 	if bridge_enabled br6 ; then
 
-		if ! wlif_enabled wl1.3 || wlif_lanaccess wl1.3 || [ "$(getconf_bri_enabled br6 sc)" = $env_disable ]; then
+		if ! wlif_enabled wl1.3 || wlif_lanaccess wl1.3 || (wlif_enabled wl0.3 && ! wlif_lanaccess wl0.3 && compare_ssid wl0.3 wl1.3) || [ "$(getconf_bri_enabled br6 sc)" = $env_disable ]; then
 
 			firewall_config delete br6
 			bridge_ifname_config delete br6
@@ -2139,9 +2139,7 @@ script_check_config() {
 				# Setting values in nvram to run properly.
 				nvram set "${bri_name}_ifnames"="$(getconf_bri_ifnames "$bri_name" sc)"
 
-				bridge_ifname_config create "$bri_name"
-
-#				configuration_check=$env_enable	
+				bridge_ifname_config create "$bri_name"	
 			fi
 
 			if [ "$(getconf_bri_dhcp_start "$bri_name" nv)" != "$(getconf_bri_dhcp_start "$bri_name" sc)" ] || [ "$(getconf_bri_dhcp_end "$bri_name" nv)" != "$(getconf_bri_dhcp_end "$bri_name" sc)" ] || [ "$(getconf_bri_staticlist "$bri_name" nv)" != "$(getconf_bri_staticlist "$bri_name" sc)" ]; then
@@ -2267,7 +2265,7 @@ script_diagnostics() {
 	echo "" >> "$script_diag/iproute.txt"
 	ip route show table all >> "$script_diag/iproute.txt"
 
-	# List of packet filtering and NAT rules
+	# List of packet filtering rules
 	iptables-save > "$script_diag/iptables.txt"
 
 	# List of ethernet bridge frame rules
@@ -2553,10 +2551,11 @@ show_banner() {
 
 show_menu() {
 	printf "  %s Main menu - version: %s \\n" "$script_name" "$script_version"
-	printf "  1.   Edit configuration (default editor: vi) \\n"
+	printf "  1n.  Edit configuration (editor: nano) \\n"
+	printf "  1v.  Edit configuration (editor: vi) \\n"
 	printf "  2.   Run configuration \\n"
 	printf "  3.   List clients \\n"
-	printf "  d.   Run diagnostics \\n"
+	printf "  d.   Diagnostics menu \\n"
 	printf "  u.   Update check \\n"
 	printf "  e.   Exit \\n"
 	printf "  z.   Uninstall \\n"
@@ -2568,8 +2567,11 @@ show_menu() {
 		printf "Choose an option: "
 		read -r key
 		case $key in
-			1)
-				vi "$script_config"
+			1n|1v)
+				case $key in
+					1n) nano "$script_config" ;;
+					1v) vi   "$script_config" ;;
+				esac
 				
 				while true; do
 					printf "\\nDo you want to apply %s configuration changes? (y/n): " "$script_name"
@@ -2597,21 +2599,25 @@ show_menu() {
 				configEx
 				
 				script_lock delete # Unlock script
+				loggerEx clio "Configuration complete!"
+				pause
 				break
 			;;
 			3)
 				show_banner
 				list_clients
+				pause
 				break
 			;;
 			d)
 				show_banner
-				script_diagnostics
+				show_diagnostics
 				break
 			;;
 			u)
 				show_banner
 				script_update
+				pause
 				break
 			;;
 			e)
@@ -2649,6 +2655,62 @@ show_menu() {
 
 	show_banner
 	show_menu
+}
+
+show_diagnostics() {
+	printf "  %s Diagnostics menu - version: %s \\n" "$script_name" "$script_version"
+	printf "  1.   List of ethernet bridges \\n"
+	printf "  2.   List of network interfaces \\n"
+	printf "  3.   List of ethernet bridge frame rules \\n"
+	printf "  4.   List of packet filtering rules \\n"
+	printf "  c.   Create diagnostics file \\n"
+	printf "  e.   Exit to main menu \\n"
+	printf "\\n"
+	printf "#############################################################\\n"
+	printf "\\n"
+
+	while true; do
+		printf "Choose an option: "
+		read -r key
+		case $key in
+			1) # List of ethernet bridges
+				brctl show
+				pause
+				break
+			;;
+			2) # List of network interfaces
+				ifconfig -a 
+				pause
+				break
+			;;
+			3) # List of ethernet bridge frame rules
+				ebtables -t broute -L 
+				pause
+				break
+			;;
+			4) # List of packet filtering rules
+				iptables -S | grep br
+				pause
+				break
+			;;
+			c)
+				show_banner
+				script_diagnostics
+				break
+			;;
+			e)
+				show_banner
+				show_menu
+				break
+			;;
+			*)
+				printf "\\nPlease choose a valid option.\\n\\n"
+			;;
+		esac
+	done
+
+	show_banner
+	show_diagnostics
 }
 
 pause() {

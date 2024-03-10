@@ -2,8 +2,8 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/96872a441a714fc6b88d6e58609461d1)](https://app.codacy.com/gh/janico82/sbnMerlin/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 ![Shellcheck](https://github.com/janico82/sbnMerlin/actions/workflows/shellcheck.yml/badge.svg)
 
-## v1.1.0
-### Updated on 2024-03-01
+## v1.1.1
+### Updated on 2024-03-10
 ## About
 Feature expansion of Wireless guest networks (wl0.2, wl0.3, wl1.2 and wl1.3) on AsusWRT-Merlin, that allows to:
 *   Automatic creation of ethernet bridge instances, based on active guest wireless networks and settings.
@@ -24,13 +24,13 @@ Running configuration example:
 root:/tmp/home/root# brctl show
 bridge name     bridge id               STP enabled     interfaces
 br0             8000.04421xxxxxxx       no              eth1
-                                                        eth3
                                                         eth5
                                                         eth6
                                                         eth6.0
                                                         eth7
                                                         eth7.0                                                        
 br1             8000.04421xxxxxxx       yes             eth1.501
+                                                        eth3
                                                         eth3.501
                                                         eth5.501
                                                         eth6.501
@@ -109,9 +109,11 @@ sh /jffs/scripts/sbnMerlin
 ##                                                         ##
 #############################################################
    sbnMerlin Main menu - version: x.x.x
-   1.   Edit configuration (default editor: vi)
+   1n.  Edit configuration (editor: nano)
+   1v.  Edit configuration (editor: vi)
    2.   Run configuration
-   d.   Run diagnostics
+   3.   List clients
+   d.   Diagnostics menu
    u.   Update check
    e.   Exit
    z.   Uninstall
@@ -169,10 +171,14 @@ When this feature is enabled, wireless clients or devices will not be able to co
 Allow Internet access for the bridge devices. (0=False/1=True/Default=0) Example: br8_allow_internet=1
 
 #### {bridge}_allow_onewayaccess
-Allow one-way access for the bridge devices. (0=False/1=True/Default=0) Example: br8_allow_onewayaccess=1
+Allow one-way access from lan network to the bridge network. (0=False/1=True/Default=0) Example: br8_allow_onewayaccess=1
+
+Scenario: "I need laptops in the lan network can access IoT devices located on the bridge(br8)". With this option enabled any device in the lan network can reach the IoT devices, but the IoT devices can't reach the lan network devices, so the option is named one-way access.
 
 #### {bridge}_allow_routeraccess
 Allow bridge access to router services without explicit rules (or implicit deny). (0=False/1=True/Default=0) Example: br8_allow_routeraccess=1
+
+Scenario: "I have enabled router VPN server, so I need to create an explicit packet filtering rule to allow access to that service". With this option enabled the access to all router services from bridge(br8) devices are blocked, except the ones with an explicit packet filtering rule, so this option protects the router from inappropriate access.
 
 ### Custom packet filtering rules
 sbnMerlin supports custom files after setting up the device firewall for each bridge. To use this feature, create the custom file in the appropriate directory with the following syntax: {bridge}_iptables.{filter or nat} extension. e.g.
