@@ -1862,7 +1862,7 @@ configEx() {
 	fi
 	if bridge_enabled br8 ; then
 	
-		if ! wlif_enabled wl0.2 || wlif_lanaccess wl0.2 || ! wlif_enabled wl1.2 || wlif_lanaccess wl1.2 || [ "$(getconf_bri_enabled br8 sc)" = $env_disable ]; then
+		if ! wlif_enabled wl0.2 || wlif_lanaccess wl0.2 || ! wlif_enabled wl1.2 || wlif_lanaccess wl1.2 || ! compare_ssid wl0.2 wl1.2 || [ "$(getconf_bri_enabled br8 sc)" = $env_disable ]; then
 
 			firewall_config delete br8
 			bridge_ifname_config delete br8
@@ -1890,7 +1890,7 @@ configEx() {
 	fi
 	if bridge_enabled br9 ; then
 	
-		if ! wlif_enabled wl0.3 || wlif_lanaccess wl0.3 || ! wlif_enabled wl1.3 || wlif_lanaccess wl1.3 || [ "$(getconf_bri_enabled br9 sc)" = $env_disable ]; then
+		if ! wlif_enabled wl0.3 || wlif_lanaccess wl0.3 || ! wlif_enabled wl1.3 || wlif_lanaccess wl1.3 || ! compare_ssid wl0.3 wl1.3 || [ "$(getconf_bri_enabled br9 sc)" = $env_disable ]; then
 
 			firewall_config delete br9
 			bridge_ifname_config delete br9
