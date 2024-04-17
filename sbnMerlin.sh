@@ -1020,7 +1020,7 @@ dhcp_config() {
 				filelinecount=$(grep -c '# '"($script_name) Network Isolation Tool" "$pcfile")
 
 				if [ "$filelinecount" -gt 1 ] || [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/'"$bri_name"'/,/# ('"$script_name"')/d' "$pcfile"
+					sed -i -e '/'"$bri_name"'.*('"$script_name"')/d' "$pcfile"
 				fi
 
 				# Gathering values from config
