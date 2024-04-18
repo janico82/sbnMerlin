@@ -2,21 +2,22 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/96872a441a714fc6b88d6e58609461d1)](https://app.codacy.com/gh/janico82/sbnMerlin/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 ![Shellcheck](https://github.com/janico82/sbnMerlin/actions/workflows/shellcheck.yml/badge.svg)
 
-## v1.1.1
-### Updated on 2024-03-10
+## v1.2.0
+### Updated on 2024-04-18
 ## About
 Feature expansion of Wireless guest networks (wl0.2, wl0.3, wl1.2 and wl1.3) on AsusWRT-Merlin, that allows to:
 *   Automatic creation of ethernet bridge instances, based on active guest wireless networks and settings.
 *   Manage wireless interface isolation, for the interfaces mapped in the bridge instance.
 *   Map other ethernet interfaces to the bridge instance.
 *   Manage Internet and one-way access for the bridge instance.
-*   Custom DHCP settings for the bridge instance.
+*   Custom DHCP(ip range, default gateway and static list) and DNS settings for the bridge instance.
 *   Custom ethernet bridge and packet filtering rules for the bridge instance.
 
 For ethernet bridge instances created by AsusWRT-Merlin (br1 and br2), that allows to:
 *   Manage wireless interface isolation, for the interfaces mapped in the bridge instance.
 *   Map other ethernet interfaces to the bridge instance.
 *   Manage Internet and one-way access for the bridge instance.
+*   Custom DHCP(static list) and DNS settings for the bridge instance.
 *   Custom ethernet bridge and packet filtering rules for the bridge instance.
 
 Running configuration example:
