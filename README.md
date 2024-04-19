@@ -2,21 +2,22 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/96872a441a714fc6b88d6e58609461d1)](https://app.codacy.com/gh/janico82/sbnMerlin/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 ![Shellcheck](https://github.com/janico82/sbnMerlin/actions/workflows/shellcheck.yml/badge.svg)
 
-## v1.1.1
-### Updated on 2024-03-10
+## v1.2.1
+### Updated on 2024-04-19
 ## About
 Feature expansion of Wireless guest networks (wl0.2, wl0.3, wl1.2 and wl1.3) on AsusWRT-Merlin, that allows to:
 *   Automatic creation of ethernet bridge instances, based on active guest wireless networks and settings.
 *   Manage wireless interface isolation, for the interfaces mapped in the bridge instance.
 *   Map other ethernet interfaces to the bridge instance.
 *   Manage Internet and one-way access for the bridge instance.
-*   Custom DHCP settings for the bridge instance.
+*   Custom DHCP(ip range, default gateway and static list) and DNS settings for the bridge instance.
 *   Custom ethernet bridge and packet filtering rules for the bridge instance.
 
 For ethernet bridge instances created by AsusWRT-Merlin (br1 and br2), that allows to:
 *   Manage wireless interface isolation, for the interfaces mapped in the bridge instance.
 *   Map other ethernet interfaces to the bridge instance.
 *   Manage Internet and one-way access for the bridge instance.
+*   Custom DHCP(static list) and DNS settings for the bridge instance.
 *   Custom ethernet bridge and packet filtering rules for the bridge instance.
 
 Running configuration example:
@@ -158,6 +159,12 @@ Start IP address of the bridge DHCP pool. Example: br8_dhcp_start="192.168.108.2
 
 #### {bridge}_dhcp_end
 End IP address of the bridge DHCP pool. Example: br8_dhcp_end="192.168.108.254"
+
+#### {bridge}_dns1_x
+Bridge-specific DNS server entry. Example: br8_dns1_x="8.8.8.8"
+
+#### {bridge}_dns2_x
+Bridge-specific DNS server entry. Example: br8_dns2_x="8.8.8.8
 
 #### {bridge}_staticlist
 IP address reservation of the bridge. Example: br8_staticlist=\<ab:cd:ef:01:23:45\>192.168.108.10\>8.8.8.8\>HOMEPC\<ab:cd:ef:01:23:46\>192.168.108.11\>\>Xbox\<ab:cd:ef:01:23:47\>192.168.168.108.12\>\>

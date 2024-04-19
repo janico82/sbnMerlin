@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2024-Mar-10].
+# Last Modified: janico82 [2024-Apr-19].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -36,7 +36,7 @@ readonly script_xdir="/jffs/scripts"
 readonly script_diag="/tmp/$script_name"
 readonly script_config="$script_dir/$script_name.conf"
 readonly script_md5="$script_dir/$script_name.md5"
-readonly script_version="1.1.1"
+readonly script_version="1.2.1"
 readonly script_branch="master"
 readonly script_repo="https://janico82.gateway.scarf.sh/asuswrt-merlin/$script_name/$script_branch"
 
@@ -50,6 +50,7 @@ readonly env_restart=1
 readonly env_no_restart=0
 readonly env_enable=1
 readonly env_disable=0
+readonly env_no_dns="0.0.0.0"
 # Script regex variables
 readonly env_regex_version="[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})"
 readonly env_regex_binary="[01]"
@@ -362,6 +363,35 @@ getconf_bri_ap_isolate() {
 	fi
 
 	echo $bri_ap_isolate
+}
+
+getconf_bri_dns1() {
+	echo "$(getconf_bri_dns $1 1 $2)"
+}
+
+getconf_bri_dns2() {
+	echo "$(getconf_bri_dns $1 2 $2)"
+}
+
+getconf_bri_dns() {
+
+	# Always get config settings from nvram.
+	bri_dns="$(nvram get "${1}_dns${2}_x")"
+
+	# Get config settings from file, if exists nvram settings does not exists, or if the "sc" flag is ative.
+	if { { [ "$#" -eq 2 ] && [ -z "$bri_dns" ]; } || { [ "$#" -eq 3 ] && [ "$3" = "sc" ]; }; } && [ -f $script_config ]; then
+
+		. $script_config
+		bri_dns="$(eval echo '$'"${1}_dns${2}_x")"
+	fi
+
+	# If the settings values aren't valid, get defaults.
+	if [ -z $bri_dns ] || ! validate_ipaddr "$bri_dns" ; then
+		bri_dns=$env_no_dns
+		loggerEx "Error: Invalid dns configuration gathered, using defaults($bri_dns)."
+	fi
+
+	echo $bri_dns
 }
 
 getconf_bri_enabled() {
@@ -1020,12 +1050,14 @@ dhcp_config() {
 				filelinecount=$(grep -c '# '"($script_name) Network Isolation Tool" "$pcfile")
 
 				if [ "$filelinecount" -gt 1 ] || [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/'"$bri_name"'/,/# ('"$script_name"')/d' "$pcfile"
+					sed -i -e '/'"$bri_name"'.*# ('"$script_name"')/d' "$pcfile" ## Solution suggested by @arner ##
 				fi
 
 				# Gathering values from config
 				bri_ipaddr=$(getconf_bri_ipaddr "$bri_name")
 				bri_netmask=$(getconf_bri_netmask "$bri_name")
+				bri_dns1=$(getconf_bri_dns1 "$bri_name")
+				bri_dns2=$(getconf_bri_dns2 "$bri_name")
 				bri_staticlist=$(getconf_bri_staticlist "$bri_name")
 
 				loggerEx "Applying DHCPv4 settings for bridge($bri_name)."
@@ -1051,6 +1083,11 @@ dhcp_config() {
 					nvram set "${bri_name}_dhcp_end"="$bri_dhcp_end"
 				fi
 
+				# DHCPv4 default dns servers
+				if [ "$bri_dns1" != "$env_no_dns" ] || [ "$bri_dns2" != "$env_no_dns" ]; then
+					echo 'pc_append "dhcp-option='"$bri_name"',6,'"$bri_dns1"','"$bri_dns2"'" "$CONFIG" # ('"$script_name"') Network Isolation Tool' >> "$pcfile"
+				fi
+
 				# DHCPv4 ip address reservation
 				for static in $(echo "${bri_staticlist#<}" | tr '<' ' '); do
 
@@ -1071,12 +1108,16 @@ dhcp_config() {
 				done
 
 				# Setup nvram values for bridge.
+				nvram set "${bri_name}_dns1_x"="$bri_dns1"
+				nvram set "${bri_name}_dns2_x"="$bri_dns2"
 				nvram set "${bri_name}_staticlist"="$bri_staticlist"
 				nvram commit
 
 				loggerEx "DHCPv4 settings for bridge($bri_name) completed."
 
 				unset bri_staticlist
+				unset bri_dns2
+				unset bri_dns1
 				unset bri_dhcp_end
 				unset bri_dhcp_start
 
@@ -1088,7 +1129,7 @@ dhcp_config() {
 				filelinecount=$(grep -c '# '"($script_name) Network Isolation Tool" "$pcfile")
 
 				if [ "$filelinecount" -gt 1 ] || [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/'"$bri_name"'/,/# ('"$script_name"')/d' "$pcfile"
+					sed -i -e '/'"$bri_name"'.*# ('"$script_name"')/d' "$pcfile" ## Solution suggested by @arner ##
 				fi
 
 				# Gathering values from config
@@ -1136,11 +1177,13 @@ dhcp_config() {
 				filelinecount=$(grep -c "$script_name" "$pcfile")
 				
 				if [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/'"$bri_name"'/,/# ('"$script_name"')/d' "$pcfile"
+					sed -i -e '/'"$bri_name"'.*# ('"$script_name"')/d' "$pcfile" ## Solution suggested by @arner ##
 
 					# Setup nvram values for bridge.
-					nvram unset "${bri_name}_dhcp_end"
 					nvram unset "${bri_name}_dhcp_start"
+					nvram unset "${bri_name}_dhcp_end"
+					nvram unset "${bri_name}_dns1_x"
+					nvram unset "${bri_name}_dns2_x"
 					nvram unset "${bri_name}_staticlist"
 					nvram commit
 
@@ -1155,7 +1198,7 @@ dhcp_config() {
 				filelinecount=$(grep -c "$script_name" "$pcfile")
 				
 				if [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/'"$bri_name"'/,/# ('"$script_name"')/d' "$pcfile"
+					sed -i -e '/'"$bri_name"'.*# ('"$script_name"')/d' "$pcfile" ## Solution suggested by @arner ##
 
 					loggerEx "Hosts settings for bridge($bri_name) removed."
 
@@ -1862,7 +1905,7 @@ configEx() {
 	fi
 	if bridge_enabled br8 ; then
 	
-		if ! wlif_enabled wl0.2 || wlif_lanaccess wl0.2 || ! wlif_enabled wl1.2 || wlif_lanaccess wl1.2 || [ "$(getconf_bri_enabled br8 sc)" = $env_disable ]; then
+		if ! wlif_enabled wl0.2 || wlif_lanaccess wl0.2 || ! wlif_enabled wl1.2 || wlif_lanaccess wl1.2 || ! compare_ssid wl0.2 wl1.2 || [ "$(getconf_bri_enabled br8 sc)" = $env_disable ]; then
 
 			firewall_config delete br8
 			bridge_ifname_config delete br8
@@ -1890,7 +1933,7 @@ configEx() {
 	fi
 	if bridge_enabled br9 ; then
 	
-		if ! wlif_enabled wl0.3 || wlif_lanaccess wl0.3 || ! wlif_enabled wl1.3 || wlif_lanaccess wl1.3 || [ "$(getconf_bri_enabled br9 sc)" = $env_disable ]; then
+		if ! wlif_enabled wl0.3 || wlif_lanaccess wl0.3 || ! wlif_enabled wl1.3 || wlif_lanaccess wl1.3 || ! compare_ssid wl0.3 wl1.3 || [ "$(getconf_bri_enabled br9 sc)" = $env_disable ]; then
 
 			firewall_config delete br9
 			bridge_ifname_config delete br9
@@ -2149,6 +2192,16 @@ script_check_config() {
 				nvram set "${bri_name}_dhcp_start"="$(getconf_bri_dhcp_start "$bri_name" sc)"
 				nvram set "${bri_name}_dhcp_end"="$(getconf_bri_dhcp_end "$bri_name" sc)"
 				nvram set "${bri_name}_staticlist"="$(getconf_bri_staticlist "$bri_name" sc)"
+
+				dhcp_config create "$bri_name"
+			fi
+
+			if [ "$(getconf_bri_dns1 "$bri_name" nv)" != "$(getconf_bri_dns1 "$bri_name" sc)" ] || [ "$(getconf_bri_dns2 "$bri_name" nv)" != "$(getconf_bri_dns2 "$bri_name" sc)" ]; then
+				loggerEx cli "Change detected on bridge($bri_name) DNS settings. Applying changes."
+
+				# Setting values in nvram to run properly.
+				nvram set "${bri_name}_dns1_x"="$(getconf_bri_dns1 "$bri_name" sc)"
+				nvram set "${bri_name}_dns2_x"="$(getconf_bri_dns2 "$bri_name" sc)"
 
 				dhcp_config create "$bri_name"
 			fi
