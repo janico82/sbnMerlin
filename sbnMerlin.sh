@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2024-Apr-18].
+# Last Modified: janico82 [2024-Apr-19].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -36,7 +36,7 @@ readonly script_xdir="/jffs/scripts"
 readonly script_diag="/tmp/$script_name"
 readonly script_config="$script_dir/$script_name.conf"
 readonly script_md5="$script_dir/$script_name.md5"
-readonly script_version="1.2.0"
+readonly script_version="1.2.1"
 readonly script_branch="master"
 readonly script_repo="https://janico82.gateway.scarf.sh/asuswrt-merlin/$script_name/$script_branch"
 
@@ -1050,7 +1050,7 @@ dhcp_config() {
 				filelinecount=$(grep -c '# '"($script_name) Network Isolation Tool" "$pcfile")
 
 				if [ "$filelinecount" -gt 1 ] || [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/'"$bri_name"'/,/# ('"$script_name"')/d' "$pcfile"
+					sed -i -e '/'"$bri_name"'.*# ('"$script_name"')/d' "$pcfile" ## Solution suggested by @arner ##
 				fi
 
 				# Gathering values from config
@@ -1129,7 +1129,7 @@ dhcp_config() {
 				filelinecount=$(grep -c '# '"($script_name) Network Isolation Tool" "$pcfile")
 
 				if [ "$filelinecount" -gt 1 ] || [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/'"$bri_name"'/,/# ('"$script_name"')/d' "$pcfile"
+					sed -i -e '/'"$bri_name"'.*# ('"$script_name"')/d' "$pcfile" ## Solution suggested by @arner ##
 				fi
 
 				# Gathering values from config
@@ -1177,7 +1177,7 @@ dhcp_config() {
 				filelinecount=$(grep -c "$script_name" "$pcfile")
 				
 				if [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/'"$bri_name"'/,/# ('"$script_name"')/d' "$pcfile"
+					sed -i -e '/'"$bri_name"'.*# ('"$script_name"')/d' "$pcfile" ## Solution suggested by @arner ##
 
 					# Setup nvram values for bridge.
 					nvram unset "${bri_name}_dhcp_start"
@@ -1198,7 +1198,7 @@ dhcp_config() {
 				filelinecount=$(grep -c "$script_name" "$pcfile")
 				
 				if [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/'"$bri_name"'/,/# ('"$script_name"')/d' "$pcfile"
+					sed -i -e '/'"$bri_name"'.*# ('"$script_name"')/d' "$pcfile" ## Solution suggested by @arner ##
 
 					loggerEx "Hosts settings for bridge($bri_name) removed."
 
