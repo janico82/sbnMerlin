@@ -160,6 +160,12 @@ Start IP address of the bridge DHCP pool. Example: br8_dhcp_start="192.168.108.2
 #### {bridge}_dhcp_end
 End IP address of the bridge DHCP pool. Example: br8_dhcp_end="192.168.108.254"
 
+#### {bridge}_dns1_x
+Bridge-specific DNS server entry. Example: br8_dns1_x="8.8.8.8"
+
+#### {bridge}_dns2_x
+Bridge-specific DNS server entry. Example: br8_dns2_x="8.8.8.8
+
 #### {bridge}_staticlist
 IP address reservation of the bridge. Example: br8_staticlist=\<ab:cd:ef:01:23:45\>192.168.108.10\>8.8.8.8\>HOMEPC\<ab:cd:ef:01:23:46\>192.168.108.11\>\>Xbox\<ab:cd:ef:01:23:47\>192.168.168.108.12\>\>
 
