@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2024-Apr-19].
+# Last Modified: janico82 [2024-Apr-25].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -36,7 +36,7 @@ readonly script_xdir="/jffs/scripts"
 readonly script_diag="/tmp/$script_name"
 readonly script_config="$script_dir/$script_name.conf"
 readonly script_md5="$script_dir/$script_name.md5"
-readonly script_version="1.2.1"
+readonly script_version="1.2.2"
 readonly script_branch="master"
 readonly script_repo="https://janico82.gateway.scarf.sh/asuswrt-merlin/$script_name/$script_branch"
 
@@ -1261,6 +1261,9 @@ bridge_config() {
 				script_lock delete # Unlock script
 				return $env_error # NOK
 			fi
+
+			# Enforce STP on the default bridge
+			brctl stp br0 on
 
 			# Confirm the bridge does not exists.
 			if ! bridge_exists "$bri_name" && validate_fullfeature_bridge "$bri_name"; then
@@ -2534,6 +2537,9 @@ script_uninstall() {
 		bridge_config delete "$bri_name"
 		bridge_ifname_config delete "$bri_name"
 	done
+
+	# Disable STP on the default bridge
+	brctl stp br0 off
 
 	# Remove script directory and files
 	rm -rf "$script_dir"
