@@ -1672,7 +1672,7 @@ firewall_config() {
 		cfiles=$(find "$script_cdir" -name "$bri_name*iptables.nat")
 		for file in $cfiles; do
 			while IFS= read -r line; do
-				if echo "$line" | grep -qE "$env_regex_iptbl_filter"; then
+				if echo "$line" | grep -qE "$env_regex_iptbl_nat"; then
 					eval "iptables -t nat $action $line >/dev/null 2>&1"
 				fi
 			done < "$file"
