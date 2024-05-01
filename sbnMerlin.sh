@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2024-Apr-25].
+# Last Modified: janico82 [2024-May-01].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -36,7 +36,7 @@ readonly script_xdir="/jffs/scripts"
 readonly script_diag="/tmp/$script_name"
 readonly script_config="$script_dir/$script_name.conf"
 readonly script_md5="$script_dir/$script_name.md5"
-readonly script_version="1.2.2"
+readonly script_version="1.2.3"
 readonly script_branch="master"
 readonly script_repo="https://janico82.gateway.scarf.sh/asuswrt-merlin/$script_name/$script_branch"
 
@@ -1675,7 +1675,7 @@ firewall_config() {
 		cfiles=$(find "$script_cdir" -name "$bri_name*iptables.nat")
 		for file in $cfiles; do
 			while IFS= read -r line; do
-				if echo "$line" | grep -qE "$env_regex_iptbl_filter"; then
+				if echo "$line" | grep -qE "$env_regex_iptbl_nat"; then ## Bugfix suggested by @arner ##
 					eval "iptables -t nat $action $line >/dev/null 2>&1"
 				fi
 			done < "$file"
