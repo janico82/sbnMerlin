@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2024-May-01].
+# Last Modified: janico82 [2024-May-11].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -36,7 +36,7 @@ readonly script_xdir="/jffs/scripts"
 readonly script_diag="/tmp/$script_name"
 readonly script_config="$script_dir/$script_name.conf"
 readonly script_md5="$script_dir/$script_name.md5"
-readonly script_version="1.2.3"
+readonly script_version="1.2.4"
 readonly script_branch="master"
 readonly script_repo="https://janico82.gateway.scarf.sh/asuswrt-merlin/$script_name/$script_branch"
 
@@ -255,7 +255,7 @@ convert_cidr() { # convert netmask to cidr
 }
 
 convert_netmask() { # convert cidr to netmask
-	value=$(( 0xffffffff ^ ((1 << (32 - $1)) - 1) ))
+	value=$(( 0xffffffff ^ ((1<<(32-$1))-1) ))
 	echo "$(( (value >> 24) & 0xff )).$(( (value >> 16) & 0xff )).$(( (value >> 8) & 0xff )).$(( value & 0xff ))"
 }
 
@@ -668,6 +668,15 @@ getconf_lan_fqn_hostname() {
 	if [ -n "$lan_domain" ]; then lan_hostname="$lan_hostname.$lan_domain"; fi
 
 	echo $lan_hostname
+}
+
+getconf_wan_ifnames() {
+
+	# Get config settings from nvram
+	wan_ifnames="$(nvram get wan0_ifname) $(nvram get wan0_gw_ifname) $(nvram get wan1_ifname) $(nvram get wan1_gw_ifname)"	
+	wan_ifnames=$(echo "${wan_ifnames}" | tr ' ' '\n' | sort -u)
+
+	echo $wan_ifnames
 }
 
 gethw_bri_enabled() {
@@ -1536,7 +1545,7 @@ firewall_config() {
 	lan_ipaddr="$(nvram get lan_ipaddr)"
 	lan_netmask="$(nvram get lan_netmask)"
 	lan_netaddr=$(convert_netaddr "$lan_ipaddr" "$lan_netmask")
-	wan0_ifname="$(nvram get wan0_ifname)"
+	wan_ifnames=$(getconf_wan_ifnames)
 
 	loggerEx "Applying Ethernet Bridge IPv4 BROUTING rules for bridge($bri_name)."
 
@@ -1623,13 +1632,27 @@ firewall_config() {
 		fi
 
 		# Allow packet forwarding between bridge and wan (internet access).
-		iptables "$action" FORWARD -i "$bri_name" -o "$wan0_ifname" -j ACCEPT >/dev/null 2>&1
-		if [ $1 = create ] && [ $bri_allow_internet -eq $env_disable ]; then
-			iptables -D FORWARD -i "$bri_name" -o "$wan0_ifname" -j ACCEPT >/dev/null 2>&1
-		fi
+		for wan_ifname in $wan_ifnames; do 
+
+			if [ $action = "-I" ]; then # Create the rule the correct position 
+				pos="$(iptables --line-numbers -vnL FORWARD | grep -E -m 1 '(DROP|ACCEPT).*(!br0|br[1-9]).*'$wan_ifname'' | awk '{print $1}')"
+
+				iptables -I FORWARD "$pos" -i "$bri_name" -o "$wan_ifname" -j ACCEPT >/dev/null 2>&1
+			fi
+
+			if [ $1 = create ] && [ $bri_allow_internet -eq $env_disable ] || [ $action = "-D" ]; then
+				iptables -D FORWARD -i "$bri_name" -o "$wan_ifname" -j ACCEPT >/dev/null 2>&1
+			fi
+		done
 
 		# Forbid packets from bridge to be forwarded to other interfaces.
-		iptables "$action" FORWARD -i "$bri_name" -j WGNPControls >/dev/null 2>&1
+		if [ $action = "-I" ]; then # Create the rule the correct position 
+			pos="$(iptables --line-numbers -vnL FORWARD | grep -E -m 1 'WGNPControls' | awk '{print $1}')"
+
+			iptables -I FORWARD "$pos" -i "$bri_name" -j WGNPControls >/dev/null 2>&1
+		else	
+			iptables -D FORWARD -i "$bri_name" -j WGNPControls >/dev/null 2>&1
+		fi
 
 		# Allow one-way traffic from lan to bridge.
 		if { [ $1 = create ] && [ $bri_allow_onewayaccess -eq $env_enable ];} || [ $action = "-D" ]; then
@@ -1700,7 +1723,7 @@ firewall_config() {
 
 	loggerEx "Ethernet Bridge and Packet Filtering setup complete for bridge($bri_name)."
 
-	unset wan0_ifname
+	unset wan_ifnames
 	unset lan_netaddr
 	unset lan_netmask
 	unset lan_ipaddr
