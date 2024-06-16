@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2024-May-11].
+# Last Modified: janico82 [2024-Jun-16].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -31,12 +31,12 @@
 # Script variables #
 readonly script_name="sbnMerlin"
 readonly script_dir="/jffs/addons/$script_name.d"
-readonly script_cdir="/jffs/addons/$script_name.d/cscripts"
+readonly script_cdir="$script_dir/cscripts"
 readonly script_xdir="/jffs/scripts"
 readonly script_diag="/tmp/$script_name"
 readonly script_config="$script_dir/$script_name.conf"
 readonly script_md5="$script_dir/$script_name.md5"
-readonly script_version="1.2.4"
+readonly script_version="1.2.5"
 readonly script_branch="master"
 readonly script_repo="https://janico82.gateway.scarf.sh/asuswrt-merlin/$script_name/$script_branch"
 
@@ -66,9 +66,9 @@ readonly env_regex_macaddr="([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})"
 readonly env_regex_netmask="(255)\.(0|128|192|224|240|248|252|254|255)\.(0|128|192|224|240|248|252|254|255)\.(0|128|192|224|240|248|252|254)"
 readonly env_regex_netname="[a-zA-Z][a-zA-Z0-9_-]{0,19}"
 readonly env_regex_number="[0-9]+"
-readonly env_regex_ebtbl_broute="^-p\s+IPv4\s+-i\s+$env_regex_wl_ifname.*(ACCEPT|DROP|RETURN)$"
-readonly env_regex_iptbl_filter="^(INPUT|FORWARD|OUTPUT).*(ACCEPT|DROP|INPUT_PING|OVPNCF|OVPNCI|OVPNSF|OVPNSI|PTCSRVLAN|PTCSRVWAN|REJECT|RETURN|SECURITY|VPNCF|WGSF|WGNPControls)$"
-readonly env_regex_iptbl_nat="^(PREROUTING|OUTPUT|POSTROUTING).*(ACCEPT|DROP|GAME_VSERVER|PUPNP|MASQUERADE|VSERVER|VUPNP)$"
+readonly env_regex_ebtbl_broute="^(-D|-I)\s+BROUTING\s+-p\s+IPv4\s+-i\s+$env_regex_wl_ifname.*(ACCEPT|DROP|RETURN)$"
+readonly env_regex_iptbl_filter="^(-D|-I)\s+(INPUT|FORWARD|OUTPUT).*(ACCEPT|DROP|INPUT_PING|OVPNCF|OVPNCI|OVPNSF|OVPNSI|PTCSRVLAN|PTCSRVWAN|REJECT|RETURN|SECURITY|VPNCF|WGSF|WGNPControls)$"
+readonly env_regex_iptbl_nat="^(-D|-I)\s+(PREROUTING|OUTPUT|POSTROUTING).*(ACCEPT|DROP|GAME_VSERVER|PUPNP|MASQUERADE|VSERVER|VUPNP)$"
 # Script event file variables
 readonly env_file_srv_start="/jffs/scripts/services-start"
 readonly env_file_srv_end="/jffs/scripts/service-event-end"
@@ -1550,15 +1550,16 @@ firewall_config() {
 	loggerEx "Applying Ethernet Bridge IPv4 BROUTING rules for bridge($bri_name)."
 
 	case $1 in
-		create|delete)
-			actions="-D -I"
+		create)
+			actions="-D"
 		;;
+		delete)
+			actions="-I"
 	esac
 
 	for if_name in $bri_ifnames; do
 		for action in $actions; do
 
-			# Create all necessary rules for the bridge.
 			ebtables -t broute "$action" BROUTING -p IPv4 -i "$if_name" --ip-dst "$lan_netaddr" --ip-proto tcp -j DROP >/dev/null 2>&1
 			ebtables -t broute "$action" BROUTING -p IPv4 -i "$if_name" --ip-dst "$bri_netaddr" --ip-proto tcp -j DROP >/dev/null 2>&1
 			
@@ -1567,99 +1568,86 @@ firewall_config() {
 			
 			ebtables -t broute "$action" BROUTING -p IPv4 -i "$if_name" --ip-dst "$lan_netaddr" --ip-proto icmp -j DROP >/dev/null 2>&1
 			ebtables -t broute "$action" BROUTING -p IPv4 -i "$if_name" --ip-dst "$bri_netaddr" --ip-proto icmp -j DROP >/dev/null 2>&1
-			ebtables -t broute "$action" BROUTING -p IPv4 -i "$if_name" --ip-dst "$lan_ipaddr" --ip-proto icmp -j ACCEPT >/dev/null 2>&1
 			ebtables -t broute "$action" BROUTING -p IPv4 -i "$if_name" --ip-dst "$bri_ipaddr" --ip-proto icmp -j ACCEPT >/dev/null 2>&1
 
-			# Allow one-way traffic from lan to bridge.
-			if [ $1 = create ] && [ $bri_allow_onewayaccess -eq $env_enable ]; then
-				ebtables -t broute -D BROUTING -p IPv4 -i "$if_name" --ip-dst "$lan_netaddr" --ip-proto tcp -j DROP >/dev/null 2>&1
-				ebtables -t broute -D BROUTING -p IPv4 -i "$if_name" --ip-dst "$lan_netaddr" --ip-proto tcp --ip-dport 53 -j ACCEPT >/dev/null 2>&1
-				ebtables -t broute -D BROUTING -p IPv4 -i "$if_name" --ip-dst "$lan_netaddr" --ip-proto icmp -j DROP >/dev/null 2>&1
-			fi
-
-			# Remove device lan icmp rules from bridge, if the script is in the creation process or in the delete process.
-			if [ $1 = create ] || { [ $1 = delete ] && ! validate_fullfeature_bridge "$bri_name"; }; then 
-				ebtables -t broute -D BROUTING -p IPv4 -i "$if_name" --ip-dst "$lan_ipaddr" --ip-proto icmp -j ACCEPT >/dev/null 2>&1
-			fi
-
-			# Remove bridge rules, if the script is in the delete process.
-			if [ $1 = delete ] && validate_fullfeature_bridge "$bri_name"; then
-				ebtables -t broute -D BROUTING -p IPv4 -i "$if_name" --ip-dst "$bri_netaddr" --ip-proto tcp -j DROP >/dev/null 2>&1
-				ebtables -t broute -D BROUTING -p IPv4 -i "$if_name" --ip-dst "$bri_netaddr" --ip-proto tcp --ip-dport 53 -j ACCEPT >/dev/null 2>&1
-				ebtables -t broute -D BROUTING -p IPv4 -i "$if_name" --ip-dst "$bri_netaddr" --ip-proto icmp -j DROP >/dev/null 2>&1
-				ebtables -t broute -D BROUTING -p IPv4 -i "$if_name" --ip-dst "$bri_ipaddr" --ip-proto icmp -j ACCEPT >/dev/null 2>&1
-			fi
 		done
 	done
 
 	loggerEx "Applying Packet Filtering IPv4 INPUT, FORWARD and NAT rules for bridge($bri_name)."
 
-	case $1 in
-		create|delete)
-			actions="-D -I"
+	# Forbit bridge access to default router services.
+	iptables -D INPUT -i "$bri_name" -j DROP >/dev/null 2>&1
 
-			if [ $1 = delete ] && validate_fullfeature_bridge "$bri_name"; then
-				actions="-D"
-			fi
-		;;
-	esac
+	# Allow bridge access to default router services: dns, dhcp and ntp.
+	iptables -D INPUT -i "$bri_name" -p udp -m udp --dport 68 -j ACCEPT >/dev/null 2>&1
+	iptables -D INPUT -i "$bri_name" -p udp -m udp --dport 67 -j ACCEPT >/dev/null 2>&1
+	iptables -D INPUT -i "$bri_name" -p tcp -m tcp --dport 53 -j ACCEPT >/dev/null 2>&1
+	iptables -D INPUT -i "$bri_name" -p udp -m udp --dport 53 -j ACCEPT >/dev/null 2>&1
+	iptables -D INPUT -i "$bri_name" -p udp -m udp --dport 123 -j ACCEPT >/dev/null 2>&1
 
-	for action in $actions; do
+	# Allow packet forwarding between bridge and wan (internet access).
+	for wan_ifname in $wan_ifnames; do 
+		iptables -D FORWARD -i "$bri_name" -o "$wan_ifname" -j ACCEPT >/dev/null 2>&1
+	done
+
+	# Forbid packets from bridge to be forwarded to other interfaces.
+	iptables -D FORWARD -i "$bri_name" -j WGNPControls >/dev/null 2>&1
+
+	# Forbid one-way traffic from lan to bridge.
+	iptables -D FORWARD -i "$lan_ifname" -o "$bri_name" -j DROP >/dev/null 2>&1
+
+	if [ $1 = create ] || { [ $1 = delete ] && validate_fullfeature_bridge "$bri_name"; }; then
+
+		# Find rule position in the INPUT chain.
+		rp="$(iptables --line-numbers -vL INPUT | grep -E -m 1 '(WGSI|WGCI|OVPNSI|OVPNCI)' | awk '{print $1}')"
 
 		# Forbit bridge access to default router services.
-		iptables "$action" INPUT -i "$bri_name" -j DROP >/dev/null 2>&1
+		iptables -I INPUT "$rp" -i "$bri_name" -j DROP >/dev/null 2>&1
 
-		# Allow bridge access to default router services: icmp, dns and dhcp.
-		iptables "$action" INPUT -i "$bri_name" -p icmp -j ACCEPT >/dev/null 2>&1
-		iptables "$action" INPUT -i "$bri_name" -p udp -m udp --dport 68 -j ACCEPT >/dev/null 2>&1
-		iptables "$action" INPUT -i "$bri_name" -p udp -m udp --dport 67 -j ACCEPT >/dev/null 2>&1
-		iptables "$action" INPUT -i "$bri_name" -p tcp -m tcp --dport 53 -j ACCEPT >/dev/null 2>&1
-		iptables "$action" INPUT -i "$bri_name" -p udp -m udp --dport 53 -j ACCEPT >/dev/null 2>&1
+		# Allow bridge access to default router services: dns and dhcp.
+		iptables -I INPUT "$rp" -i "$bri_name" -p udp -m udp --dport 68 -j ACCEPT >/dev/null 2>&1
+		iptables -I INPUT "$rp" -i "$bri_name" -p udp -m udp --dport 67 -j ACCEPT >/dev/null 2>&1
+		iptables -I INPUT "$rp" -i "$bri_name" -p tcp -m tcp --dport 53 -j ACCEPT >/dev/null 2>&1
+		iptables -I INPUT "$rp" -i "$bri_name" -p udp -m udp --dport 53 -j ACCEPT >/dev/null 2>&1
+	fi
+
+	if [ $1 = create ]; then
 
 		# Allow bridge access to default router services: ntp.
-		if { [ $1 = create ] && [ $ntp_enable -eq $env_enable ];} || [ $action = "-D" ]; then
-			iptables "$action" INPUT -i "$bri_name" -p udp -m udp --dport 123 -j ACCEPT >/dev/null 2>&1
-		fi
+		if [ $ntp_enable -eq $env_enable ]; then
+			iptables -I INPUT "$rp" -i "$bri_name" -p udp -m udp --dport 123 -j ACCEPT >/dev/null 2>&1
+		fi		
 
 		# Remove rule if router services access is enabled.
-		if { [ $1 = create ] && [ $bri_allow_routeraccess -eq $env_enable ];} || [ $action = "-D" ]; then
-			iptables "$action" INPUT -i "$bri_name" -j DROP >/dev/null 2>&1
-		fi
-
-		# Remove rules inserted by script.
-		if [ $1 = delete ]; then
-			iptables -D INPUT -i "$bri_name" -p icmp -j ACCEPT >/dev/null 2>&1
+		if [ $bri_allow_routeraccess -eq $env_enable ]; then
+			iptables -D INPUT -i "$bri_name" -j DROP >/dev/null 2>&1
 		fi
 
 		# Allow packet forwarding between bridge and wan (internet access).
-		for wan_ifname in $wan_ifnames; do 
+		if [ $bri_allow_internet -eq $env_enable ]; then
 
-			if [ $action = "-I" ]; then # Create the rule the correct position 
-				pos="$(iptables --line-numbers -vnL FORWARD | grep -E -m 1 '(DROP|ACCEPT).*(!br0|br[1-9]).*'$wan_ifname'' | awk '{print $1}')"
-
-				iptables -I FORWARD "$pos" -i "$bri_name" -o "$wan_ifname" -j ACCEPT >/dev/null 2>&1
-			fi
-
-			if [ $1 = create ] && [ $bri_allow_internet -eq $env_disable ] || [ $action = "-D" ]; then
-				iptables -D FORWARD -i "$bri_name" -o "$wan_ifname" -j ACCEPT >/dev/null 2>&1
-			fi
-		done
+			for wan_ifname in $wan_ifnames; do # Find rule position in the FORWARD chain before the WAN ifname.
+				rp="$(iptables --line-numbers -vL FORWARD | grep -E -m 1 '(DROP|ACCEPT).*((!br0|br[1-9])\s+'$wan_ifname')\s+anywhere' | awk '{print $1}')"
+				
+				iptables -I FORWARD "$rp" -i "$bri_name" -o "$wan_ifname" -j ACCEPT >/dev/null 2>&1
+			done
+		fi
 
 		# Forbid packets from bridge to be forwarded to other interfaces.
-		if [ $action = "-I" ]; then # Create the rule the correct position 
-			pos="$(iptables --line-numbers -vnL FORWARD | grep -E -m 1 'WGNPControls' | awk '{print $1}')"
+		for wan_ifname in $wan_ifnames; do # Find rule position in the FORWARD chain before the WAN ifname.
+			rp="$(iptables --line-numbers -vL FORWARD | grep -E -m 1 'WGNPControls|((DROP|ACCEPT)\s+all\s+--\s+(!br0|br[1-9])\s+'$wan_ifname')\s+anywhere' | awk '{print $1}')"
+			
+			iptables -I FORWARD "$rp" -i "$bri_name" -j WGNPControls >/dev/null 2>&1
+		done
 
-			iptables -I FORWARD "$pos" -i "$bri_name" -j WGNPControls >/dev/null 2>&1
-		else	
-			iptables -D FORWARD -i "$bri_name" -j WGNPControls >/dev/null 2>&1
+		# Forbid one-way traffic from lan to bridge.
+		if [ $bri_allow_onewayaccess -eq $env_disable ]; then
+			rp="$(iptables --line-numbers -vL FORWARD | grep -E -m 1 'ACCEPT.*('$lan_ifname'\s+any\s+anywhere)' | awk '{print $1}')" # Find rule position in the FORWARD chain.
+			
+			iptables -I FORWARD "$rp" -i "$lan_ifname" -o "$bri_name" -j DROP >/dev/null 2>&1
 		fi
 
-		# Allow one-way traffic from lan to bridge.
-		if { [ $1 = create ] && [ $bri_allow_onewayaccess -eq $env_enable ];} || [ $action = "-D" ]; then
-			iptables "$action" FORWARD -i "$lan_ifname" -o "$bri_name" -j ACCEPT >/dev/null 2>&1
-			iptables "$action" FORWARD -i "$bri_name" -o "$lan_ifname" -m state --state RELATED,ESTABLISHED -j ACCEPT >/dev/null 2>&1
-		fi
-	done
+	fi
 
 	loggerEx "Applying Ethernet Bridge and Packet Filtering custom scripts for bridge($bri_name)."
 
@@ -1679,7 +1667,10 @@ firewall_config() {
 		for file in $cfiles; do
 			while IFS= read -r line; do
 				if echo "$line" | grep -qE "$env_regex_ebtbl_broute"; then
-					eval "ebtables -t broute $action BROUTING $line >/dev/null 2>&1"
+					la="$(if [ "$action" = "-I" ] && [ "$(echo $line | cut -c 1-2)" = "-I" ]; then echo "-I"; else echo "-D"; fi)"
+					ln="$(echo $line | cut -c 4-)"
+					
+					eval "ebtables -t broute $la $ln >/dev/null 2>&1"
 				fi
 			done < "$file"
 		done
@@ -1689,7 +1680,10 @@ firewall_config() {
 		for file in $cfiles; do
 			while IFS= read -r line; do
 				if echo "$line" | grep -qE "$env_regex_iptbl_filter"; then
-					eval "iptables $action $line >/dev/null 2>&1"
+					la="$(if [ "$action" = "-I" ] && [ "$(echo $line | cut -c 1-2)" = "-I" ]; then echo "-I"; else echo "-D"; fi)"
+					ln="$(echo $line | cut -c 4-)"
+
+					eval "iptables $la $ln >/dev/null 2>&1"
 				fi
 			done < "$file"
 		done
@@ -1699,7 +1693,10 @@ firewall_config() {
 		for file in $cfiles; do
 			while IFS= read -r line; do
 				if echo "$line" | grep -qE "$env_regex_iptbl_nat"; then ## Bugfix suggested by @arner ##
-					eval "iptables -t nat $action $line >/dev/null 2>&1"
+					la="$(if [ "$action" = "-I" ] && [ "$(echo $line | cut -c 1-2)" = "-I" ]; then echo "-I"; else echo "-D"; fi)"
+					ln="$(echo $line | cut -c 4-)"
+
+					eval "iptables -t nat $la $ln >/dev/null 2>&1"
 				fi
 			done < "$file"
 		done
@@ -2457,7 +2454,7 @@ script_legacy() {
 	iprules="$(iptables --list-rules | grep "($script_name)")"
 	echo "$iprules" | while IFS= read -r ipline; do
 
-		ipline=$(echo "$ipline" | cut -c 3-) # Remove the first two characters
+		ipline=$(echo "$ipline" | cut -c 4-) # Remove the first two characters
 		eval "iptables -D $ipline >/dev/null 2>&1"
 	done
 
@@ -2465,7 +2462,7 @@ script_legacy() {
 	iprules="$(iptables -t nat --list-rules | grep "($script_name)")"
 	echo "$iprules" | while IFS= read -r ipline; do
 
-		ipline=$(echo "$ipline" | cut -c 3-) # Remove the first two characters
+		ipline=$(echo "$ipline" | cut -c 4-) # Remove the first two characters
 		eval "iptables -t nat -D $ipline >/dev/null 2>&1"
 	done
 

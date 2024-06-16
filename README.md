@@ -2,8 +2,8 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/96872a441a714fc6b88d6e58609461d1)](https://app.codacy.com/gh/janico82/sbnMerlin/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 ![Shellcheck](https://github.com/janico82/sbnMerlin/actions/workflows/shellcheck.yml/badge.svg)
 
-## v1.2.4
-### Updated on 2024-05-11
+## v1.2.5
+### Updated on 2024-06-16
 ## About
 Feature expansion of Wireless guest networks (wl0.2, wl0.3, wl1.2 and wl1.3) on AsusWRT-Merlin, that allows to:
 *   Automatic creation of ethernet bridge instances, based on active guest wireless networks and settings.
@@ -201,8 +201,8 @@ root:/tmp/home/root# nvram get sshd_port
 22
 
 # Rule example in br8_iptables.filter file.
-INPUT -i br8 -p tcp -m tcp --dport 8443 -j ACCEPT
-INPUT -i br8 -p tcp -m tcp --dport 22 -j ACCEPT
+-I INPUT -i br8 -p tcp -m tcp --dport 8443 -j ACCEPT
+-I INPUT -i br8 -p tcp -m tcp --dport 22 -j ACCEPT
 ```
 Custom rule example to allow bridge access to router services: openvpn 
 ```sh
@@ -213,9 +213,13 @@ root:/tmp/home/root# nvram get vpn_server1_port (or vpn_server2_port)
 1194
 
 # Rule example in br8_iptables.filter file.
-INPUT -i br8 -p udp -m udp --dport 1194 -j ACCEPT
+-I INPUT -i br8 -p udp -m udp --dport 1194 -j ACCEPT
 ```
-
+Custom rule example to allow single IP address connection 
+```sh
+# Rule example in br8_iptables.filter file.
+-I INPUT -s 192.168.50.11/32 -d 192.168.108.41/32 -j ACCEPT
+```
 
 ## Scarf Gateway
 Installs and updates for this addon are redirected via the [Scarf Gateway](https://about.scarf.sh/scarf-gateway) by [Scarf](https://about.scarf.sh/about). This allows gather data on the number of new installations of this addon or how often users check for updates. Scarf Gateway functions similarly to a link shortener like bit.ly, redirecting traffic as a domain gateway.
