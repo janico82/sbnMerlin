@@ -137,29 +137,29 @@ It's possible to use sbnMerlin default editor for managing configuration items, 
 sbnMerlin automatism is based on the following rules: every ethernet bridge(brx) is created, if the each wireless(wlx.y) interface is enabled and with lan access disabled, as listed in the following matrixes.
 ```sh
 The RT-AX86U or similar dual-band router with the following interface mapping:
-				.1(bsb)     .2(fsb)		.3(fsb)
-2.4Ghz	wl0.	br1         br3         br5
-5Ghz	wl1.	br2         br4         br6
-                            br8         br9 (fdb)
+		.1(bsb)		.2(fsb)		.3(fsb)
+2.4Ghz	wl0.	br1		br3		br5
+5Ghz	wl1.	br2		br4		br6
+				br8		br9 (fdb)
 ```
 ```sh
 The GT-AXE11000 or similar tri-band router with the following interface mapping:
-				.1(bsb)		.2(fsb)		.3(fsb)
-2.4Ghz	wl0.	br1         br11        br21
-5Ghz-1	wl1.	br2         br12        br22
-						    br17        br27
-5Ghz-2	wl2.	br3         br13        br23
-                            br18        br28 (fdb)
+		.1(bsb)		.2(fsb)		.3(fsb)
+2.4Ghz	wl0.	br1		br11		br21
+5Ghz-1	wl1.	br2		br12		br22
+				br17		br27 (fdb)
+5Ghz-2	wl2.	br3		br13		br23
+				br18		br28 (fdb)
 ```
 ```sh
 The GT-AXE16000 or similar quad-band router with the following interface mapping:
-				.1(bsb)     .2(fsb)     .3(fsb)
-2.4Ghz	wl3.	br1         br11        br21
-5Ghz-1	wl2.	br2         br12        br22
-						    br17        br27
-5Ghz-2	wl1.	br3         br13        br23
-6Ghz	wl0.	br4         br14        br24
-						    br18        br28 (fdb)
+		.1(bsb)		.2(fsb)		.3(fsb)
+2.4Ghz	wl3.	br1		br11		br21
+5Ghz-1	wl2.	br2		br12		br22
+				br17		br27 (fdb)
+5Ghz-2	wl1.	br3		br13		br23
+6Ghz	wl0.	br4		br14		br24
+				br18		br28 (fdb)
 ```
 ```sh
 (bsb) basic feature single-band bridge
