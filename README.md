@@ -2,10 +2,10 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/96872a441a714fc6b88d6e58609461d1)](https://app.codacy.com/gh/janico82/sbnMerlin/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 ![Shellcheck](https://github.com/janico82/sbnMerlin/actions/workflows/shellcheck.yml/badge.svg)
 
-## v1.2.5
-### Updated on 2024-06-16
+## v1.2.6
+### Updated on 2024-06-26
 ## About
-Feature expansion of Wireless guest networks (wl0.2, wl0.3, wl1.2 and wl1.3) on AsusWRT-Merlin, that allows to:
+Feature expansion of Wireless guest networks (wl0.2, wl0.3, wl1.2, wl1.3 or others) on AsusWRT-Merlin, that allows to:
 *   Automatic creation of ethernet bridge instances, based on active guest wireless networks and settings.
 *   Manage wireless interface isolation, for the interfaces mapped in the bridge instance.
 *   Map other ethernet interfaces to the bridge instance.
@@ -13,7 +13,7 @@ Feature expansion of Wireless guest networks (wl0.2, wl0.3, wl1.2 and wl1.3) on 
 *   Custom DHCP(ip range, default gateway and static list) and DNS settings for the bridge instance.
 *   Custom ethernet bridge and packet filtering rules for the bridge instance.
 
-For ethernet bridge instances created by AsusWRT-Merlin (br1 and br2), that allows to:
+For ethernet bridge instances created by AsusWRT-Merlin (br1, br2, br3 and br4), sbnMerlin allows to:
 *   Manage wireless interface isolation, for the interfaces mapped in the bridge instance.
 *   Map other ethernet interfaces to the bridge instance.
 *   Manage Internet and one-way access for the bridge instance.
@@ -60,7 +60,7 @@ br1       Link encap:Ethernet  HWaddr ab:cb:ef:01:23:45
           collisions:0 txqueuelen:0
           RX bytes:26640 (26.0 KiB)  TX bytes:9386700 (8.9 MiB)
 
-root:/tmp/home/root# ifconfig br8
+root:/tmp/home/root# ifconfig br17
 br8       Link encap:Ethernet  HWaddr ab:cb:ef:01:23:45
           inet addr:192.168.108.1  Bcast:192.168.108.255  Mask:255.255.255.0
           UP BROADCAST RUNNING ALLMULTI MULTICAST  MTU:1500  Metric:1
@@ -134,14 +134,38 @@ The configuration file is located at:
 
 It's possible to use sbnMerlin default editor for managing configuration items, or your prefered editor. sbnMerlin checks every 10 minutes for changes in the configuration file. If you need to apply a configuration immediately, use the sbnMerlin menu.
 
-sbnMerlin automatism is based on the following rules. sbMerlin creates:
-*   ethernet bridge(br3) instance if the wireless interface(wl0.2) is enabled and with lan access disabled.
-*   ethernet bridge(br4) instance if the wireless interface(wl1.2) is enabled and with lan access disabled.
-*   ethernet bridge(br5) instance if the wireless interface(wl0.3) is enabled and with lan access disabled.
-*   ethernet bridge(br6) instance if the wireless interface(wl1.3) is enabled and with lan access disabled.
-*   ethernet bridge(br8) instance if both wireless interfaces(wl0.2, wl1.2) are enabled and with lan access disabled.
-*   ethernet bridge(br9) instance if both wireless interfaces(wl0.3, wl1.3) are enabled and with lan access disabled.
-
+sbnMerlin automatism is based on the following rules: every ethernet bridge(brx) is created, if the each wireless(wlx.y) interface is enabled and with lan access disabled, as listed in the following matrixes.
+```sh
+The RT-AX86U or similar dual-band router with the following interface mapping:
+				.1(bsb)     .2(fsb)		.3(fsb)
+2.4Ghz	wl0.	br1         br3         br5
+5Ghz	wl1.	br2         br4         br6
+                            br8         br9 (fdb)
+```
+```sh
+The GT-AXE11000 or similar tri-band router with the following interface mapping:
+				.1(bsb)		.2(fsb)		.3(fsb)
+2.4Ghz	wl0.	br1         br11        br21
+5Ghz-1	wl1.	br2         br12        br22
+						    br17        br27
+5Ghz-2	wl2.	br3         br13        br23
+                            br18        br28 (fdb)
+```
+```sh
+The GT-AXE16000 or similar quad-band router with the following interface mapping:
+				.1(bsb)     .2(fsb)     .3(fsb)
+2.4Ghz	wl3.	br1         br11        br21
+5Ghz-1	wl2.	br2         br12        br22
+						    br17        br27
+5Ghz-2	wl1.	br3         br13        br23
+6Ghz	wl0.	br4         br14        br24
+						    br18        br28 (fdb)
+```
+```sh
+(bsb) basic feature single-band bridge
+(fsb) fullfeature single-band bridge
+(fdb) fullfeature dual-band bridge
+```
 #### {bridge}_enabled
 Bridge configuration enabled. (0=False/1=True/Default=0). Example: br8_enabled=1
 
