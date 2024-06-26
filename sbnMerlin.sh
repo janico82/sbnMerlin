@@ -59,7 +59,7 @@ readonly env_no_dns="0.0.0.0"
 		*)	echo "<br1>bsb>wl0.1><br2>bsb>wl1.1><br3>fsb>wl0.2><br4>fsb>wl1.2><br5>fsb>wl0.3><br6>fsb>wl1.3><br8>fdb>wl0.2 wl1.2><br9>fdb>wl0.3 wl1.3>" ;;
 	esac
  }
-readonly env_bri_mapping=$(getconf_mappings)
+readonly env_bri_mapping="$(getconf_mappings)"
 # Script regex variables
 readonly env_regex_version="[0-9]{1,2}([.][0-9]{1,2})([.][0-9]{1,2})"
 readonly env_regex_binary="[01]"
@@ -157,7 +157,7 @@ validate_bridge() {
 validate_fullfeature_bridge() {
 
 	# Confirm the bridge name is valid and is a fullfeature. Usage: validate_fullfeature_bridge br17
-	if [ $# -ne 1 ] || ! $(echo "$env_bri_mapping" | grep -o "${1}>[^<]*>" | awk -F'[<>]' '{print $2}' | grep -qE "fsb|fdb") ; then
+	if [ $# -ne 1 ] || ! (echo "$env_bri_mapping" | grep -o "${1}>[^<]*>" | awk -F'[<>]' '{print $2}' | grep -qE "fsb|fdb") ; then
 		return $env_error # NOK
 	else
 		return 0 # OK
@@ -265,7 +265,8 @@ convert_cidr() { # convert netmask to cidr
 }
 
 convert_netmask() { # convert cidr to netmask
-	echo "$(( (((0xffffffff^((1<<(32-$1))-1))) >> 24) & 0xff )).$(( (((0xffffffff^((1<<(32-$1))-1))) >> 16) & 0xff )).$(( (((0xffffffff^((1<<(32-$1))-1))) >> 8) & 0xff )).$(( ((0xffffffff^((1<<(32-$1))-1))) & 0xff ))"
+    value=$(( 0xffffffff ^ ((1 << (32 - $1)) - 1) ))
+    echo "$(( (value >> 24) & 0xff )).$(( (value >> 16) & 0xff )).$(( (value >> 8) & 0xff )).$(( value & 0xff ))"
 }
 
 convert_netaddr() {
@@ -1979,11 +1980,11 @@ configEx() {
 
 	for if_name in $(gethw_wif_enabled); do
 
-		if $(echo $ex_names | grep -qE "$if_name"); then continue; fi # Check for interfaces already processed.
+		if (echo $ex_names | grep -qE "$if_name"); then continue; fi # Check for interfaces already processed.
 
 		bri_types=$(echo "$env_bri_mapping" | grep -o "[^<]*>*$if_name[^<]*>" | awk -F'[<>]' '{print $2}')
 
-		if $(echo "$bri_types" | grep -qE "fdb"); then
+		if (echo "$bri_types" | grep -qE "fdb"); then
 
 			# Check for dualband interfaces that are going to be created.
 			dualband_enabled=$env_disable
@@ -1992,7 +1993,7 @@ configEx() {
 				if (wlif_enabled $if_name && wlif_enabled $db_name) && (! wlif_lanaccess $if_name && ! wlif_lanaccess $db_name) && compare_ssid $if_name $db_name; then
 
 					bri_type="fdb"
-					bri_name=$(echo $(echo "$env_bri_mapping" | grep -o "[^<]*$bri_type>*$if_name $db_name[^<]*>" | awk -F'[<>]' '{print $1}') $(echo "$env_bri_mapping" | grep -o "[^<]*$bri_type>*$db_name $if_name[^<]*>" | awk -F'[<>]' '{print $1}') | xargs)
+					bri_name=$(echo "$(echo "$env_bri_mapping" | grep -o "[^<]*$bri_type>*$if_name $db_name[^<]*>" | awk -F'[<>]' '{print $1}')" "$(echo "$env_bri_mapping" | grep -o "[^<]*$bri_type>*$db_name $if_name[^<]*>" | awk -F'[<>]' '{print $1}')" | xargs)
 
 					bridge_config create "$bri_name"
 					bridge_ifname_config create "$bri_name"
@@ -2004,7 +2005,7 @@ configEx() {
 			done
 			if [ $dualband_enabled = $env_enable ]; then continue; fi
 		fi
-		if $(echo "$bri_types" | grep -qE "fsb"); then
+		if (echo "$bri_types" | grep -qE "fsb"); then
 			
 			if ! wlif_lanaccess $if_name ; then
 
@@ -2016,7 +2017,7 @@ configEx() {
 				firewall_config create "$bri_name"
 			fi
 		fi
-		if $(echo "$bri_types" | grep -qE "bsb"); then
+		if (echo "$bri_types" | grep -qE "bsb"); then
 
 			if ! wlif_lanaccess $if_name ; then
 
