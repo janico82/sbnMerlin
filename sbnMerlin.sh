@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2024-Jun-21].
+# Last Modified: janico82 [2024-Jun-26].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -23,7 +23,6 @@
 # shellcheck disable=SC2005
 # shellcheck disable=SC2016
 # shellcheck disable=SC2034
-# shellcheck disable=SC2046
 # shellcheck disable=SC2086
 # shellcheck disable=SC2129
 # shellcheck disable=SC2155
@@ -562,7 +561,10 @@ getconf_bri_ifnames() {
 	bri_type=$(echo "$env_bri_mapping" | grep -o "$1>[^<]*>" | awk -F'[<>]' '{print $2}')
 	case $bri_type in
 		"bsb") bri_ifnames=$(echo "${bri_ifnames}" | tr ' ' '\n' | sort -u) ;;
-		*)   bri_ifnames=$(echo "${bri_ifnames} "$(echo "$env_bri_mapping" | grep -o "${1}>[^<]*>" | awk -F'[<>]' '{print $3}') | tr ' ' '\n' | sort -u) ;;
+		*)   
+			ext_ifnames=$(echo "$env_bri_mapping" | grep -o "${1}>[^<]*>" | awk -F'[<>]' '{print $3}')
+			bri_ifnames=$(echo "${bri_ifnames} ${ext_ifnames}" | tr ' ' '\n' | sort -u | xargs)
+		;;
 	esac
 
 	# Join the elements of the merged array back into a single string and remove leading and trailing whitespace
