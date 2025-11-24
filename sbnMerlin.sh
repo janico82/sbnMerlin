@@ -889,35 +889,28 @@ pcfile_avahi() {
 		create)
 
 			if [ -f "$pcfile" ]; then
-				filelinecount=$(grep -c '# '"($script_name) Network Isolation Tool" "$pcfile")
-
-				if [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/# ('"$script_name"')/d' "$pcfile"
-
-					if [ "$(grep -c 'CONFIG' "$pcfile")" -eq 0 ]; then
-						{
-						echo 'CONFIG=$1'
-						echo ''
-						} >> "$pcfile"
-					fi
-
-					if [ "$(grep -c 'helper.sh' "$pcfile")" -eq 0 ]; then
-						{
-						echo '. /usr/sbin/helper.sh'
-						echo ''
-						} >> "$pcfile"
-					fi
-
-					{
-				 	 echo 'pc_append "[reflector]" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
-				 	 echo 'pc_append "enable-reflector=yes" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
-					 echo ''
-				 	 echo 'pc_append "[Server]" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
-				 	 echo 'pc_append "cache-entries-max=0" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
-					} >> "$pcfile"
-
-					service restart_mdns >/dev/null 2>&1
+				# Remove existing sbnMerlin entries
+				sed -i '/# ('"$script_name"')/d' "$pcfile"
+				
+				# Always ensure headers exist at the top
+				if ! grep -q '^CONFIG=\$1' "$pcfile"; then
+					sed -i '1a\CONFIG=$1\n' "$pcfile"
 				fi
+				
+				if ! grep -q '^[[:space:]]*\. /usr/sbin/helper.sh' "$pcfile"; then
+					sed -i '2a\. /usr/sbin/helper.sh\n' "$pcfile"
+				fi
+				
+				# Add sbnMerlin specific configs
+				{
+				 echo 'pc_append "[reflector]" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
+				 echo 'pc_append "enable-reflector=yes" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
+				 echo ''
+				 echo 'pc_append "[Server]" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
+				 echo 'pc_append "cache-entries-max=0" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
+				} >> "$pcfile"
+				
+				service restart_mdns >/dev/null 2>&1
 
 			else
 				{
@@ -988,32 +981,24 @@ pcfile_dnsmasq() {
 		create)
 			
 			if [ -f "$pcfile" ]; then
-				filelinecount=$(grep -c '# '"($script_name) Network Isolation Tool" "$pcfile")
+				# Remove existing sbnMerlin entries
+				sed -i '/# ('"$script_name"')/d' "$pcfile"
 				
-				if [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/# ('"$script_name"')/d' "$pcfile"
-
-					if [ "$(grep -c 'CONFIG' "$pcfile")" -eq 0 ]; then
-						{
-						echo 'CONFIG=$1'
-						echo ''
-						} >> "$pcfile"
-					fi
-
-					if [ "$(grep -c 'helper.sh' "$pcfile")" -eq 0 ]; then
-						{
-						echo '. /usr/sbin/helper.sh'
-						echo ''
-						} >> "$pcfile"
-					fi
+				# Always ensure headers exist at the top
+				if ! grep -q '^CONFIG=\$1' "$pcfile"; then
+					sed -i '1a\CONFIG=$1\n' "$pcfile"
+				fi
+				
+				if ! grep -q '^[[:space:]]*\. /usr/sbin/helper.sh' "$pcfile"; then
+					sed -i '2a\. /usr/sbin/helper.sh\n' "$pcfile"
 				fi
 			else
 				{
-				 echo '#!/bin/sh'
-				 echo 'CONFIG=$1'
-				 echo ''
-				 echo '. /usr/sbin/helper.sh'
-				 echo ''
+          echo '#!/bin/sh'
+          echo 'CONFIG=$1'
+          echo ''
+          echo '. /usr/sbin/helper.sh'
+          echo ''
  				} > "$pcfile"
 				chmod 0755 "$pcfile"
 			fi
@@ -1039,24 +1024,16 @@ pcfile_hosts() {
 		create)
 			
 			if [ -f "$pcfile" ]; then
-				filelinecount=$(grep -c '# '"($script_name) Network Isolation Tool" "$pcfile")
+				# Remove existing sbnMerlin entries
+				sed -i '/# ('"$script_name"')/d' "$pcfile"
 				
-				if [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/# ('"$script_name"')/d' "$pcfile"
-
-					if [ "$(grep -c 'CONFIG' "$pcfile")" -eq 0 ]; then
-						{
-						echo 'CONFIG=$1'
-						echo ''
-						} >> "$pcfile"
-					fi
-
-					if [ "$(grep -c 'helper.sh' "$pcfile")" -eq 0 ]; then
-						{
-						echo '. /usr/sbin/helper.sh'
-						echo ''
-						} >> "$pcfile"
-					fi
+				# Always ensure headers exist at the top
+				if ! grep -q '^CONFIG=\$1' "$pcfile"; then
+					sed -i '1a\CONFIG=$1\n' "$pcfile"
+				fi
+				
+				if ! grep -q '^[[:space:]]*\. /usr/sbin/helper.sh' "$pcfile"; then
+					sed -i '2a\. /usr/sbin/helper.sh\n' "$pcfile"
 				fi
 			else
 				{
