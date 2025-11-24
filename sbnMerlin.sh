@@ -894,14 +894,14 @@ pcfile_avahi() {
 				if [ "$filelinecount" -gt 0 ]; then
 					sed -i -e '/# ('"$script_name"')/d' "$pcfile"
 
-					if [ "$(grep -c 'CONFIG' '$pcfile')" -eq 0 ]; then
+					if [ "$(grep -c 'CONFIG' "$pcfile")" -eq 0 ]; then
 						{
 						echo 'CONFIG=$1'
 						echo ''
 						} >> "$pcfile"
 					fi
 
-					if [ "$(grep -c 'helper.sh' '$pcfile')" -eq 0 ]; then
+					if [ "$(grep -c 'helper.sh' "$pcfile")" -eq 0 ]; then
 						{
 						echo '. /usr/sbin/helper.sh'
 						echo ''
@@ -993,14 +993,14 @@ pcfile_dnsmasq() {
 				if [ "$filelinecount" -gt 0 ]; then
 					sed -i -e '/# ('"$script_name"')/d' "$pcfile"
 
-					if [ "$(grep -c 'CONFIG' '$pcfile')" -eq 0 ]; then
+					if [ "$(grep -c 'CONFIG' "$pcfile")" -eq 0 ]; then
 						{
 						echo 'CONFIG=$1'
 						echo ''
 						} >> "$pcfile"
 					fi
 
-					if [ "$(grep -c 'helper.sh' '$pcfile')" -eq 0 ]; then
+					if [ "$(grep -c 'helper.sh' "$pcfile")" -eq 0 ]; then
 						{
 						echo '. /usr/sbin/helper.sh'
 						echo ''
@@ -1044,14 +1044,14 @@ pcfile_hosts() {
 				if [ "$filelinecount" -gt 0 ]; then
 					sed -i -e '/# ('"$script_name"')/d' "$pcfile"
 
-					if [ "$(grep -c 'CONFIG' '$pcfile')" -eq 0 ]; then
+					if [ "$(grep -c 'CONFIG' "$pcfile")" -eq 0 ]; then
 						{
 						echo 'CONFIG=$1'
 						echo ''
 						} >> "$pcfile"
 					fi
 
-					if [ "$(grep -c 'helper.sh' '$pcfile')" -eq 0 ]; then
+					if [ "$(grep -c 'helper.sh' "$pcfile")" -eq 0 ]; then
 						{
 						echo '. /usr/sbin/helper.sh'
 						echo ''
