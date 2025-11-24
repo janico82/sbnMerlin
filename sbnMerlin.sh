@@ -1419,9 +1419,14 @@ bridge_ifname_config() {
 			# Confirm the bridge does exists.
 			if bridge_exists "$bri_name"; then
 
+        loggerEx "Starting bridge_ifname_config for $bri_name"
+
 				# Gathering values from config.
 				bri_ifnames=$(getconf_bri_ifnames "$bri_name")
+        loggerEx "bri_ifnames to add: [$bri_ifnames]"
+
 				hw_ifnames=$(gethw_bri_ifnames "$bri_name")
+        loggerEx "hw_ifnames currently in bridge: [$hw_ifnames]"
 
 				# Gathering if_names to be added to configuration.
 				for if_name in $hw_ifnames; do
@@ -1429,10 +1434,14 @@ bridge_ifname_config() {
 					bri_ifnames=$(echo "$bri_ifnames" | sed "s/$if_name//;s/  */ /g") # Remove if_names that match
 				done
 
+        loggerEx "About to move interfaces: [$bri_ifnames]"
+
 				# Add interfaces to configuration.
 				for if_name in $bri_ifnames; do
 
+          loggerEx "Calling bridge_ifname_change br0 $bri_name $if_name"
 					bridge_ifname_change br0 "$bri_name" "$if_name"
+          loggerEx "Returned from bridge_ifname_change for $if_name"
 				done
 
 				# Gathering values from config.
