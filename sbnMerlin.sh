@@ -1592,6 +1592,7 @@ firewall_config() {
 	bri_allow_routeraccess=$(getconf_bri_allow_routeraccess "$bri_name")
 
 	ntp_enable="$(nvram get ntpd_enable)"
+  grep -qE "^TIMESERVER=(chronyd|ntpd)" /opt/share/ntpmerlin.d/config /jffs/addons/ntpmerlin.d/config 2>/dev/null && ntp_enable=1
 	lan_ifname="$(nvram get lan_ifname)"
 	lan_ipaddr="$(nvram get lan_ipaddr)"
 	lan_netmask="$(nvram get lan_netmask)"
