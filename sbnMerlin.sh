@@ -267,7 +267,7 @@ convert_cidr() { # convert netmask to cidr
 }
 
 convert_netmask() { # convert cidr to netmask
- #   value=$(( 0xffffffff ^ ((1 << (32 - $1)) - 1) ))
+    value=$(( 0xffffffff ^ ((1 << (32 - $1)) - 1) ))
     echo "$(( (value >> 24) & 0xff )).$(( (value >> 16) & 0xff )).$(( (value >> 8) & 0xff )).$(( value & 0xff ))"
 }
 
@@ -1569,6 +1569,8 @@ firewall_config() {
 	bri_allow_routeraccess=$(getconf_bri_allow_routeraccess "$bri_name")
 
 	ntp_enable="$(nvram get ntpd_enable)"
+	grep -qE "^TIMESERVER=(chronyd|ntpd)" /opt/share/ntpmerlin.d/config /jffs/addons/ntpmerlin.d/config 2>/dev/null && ntp_enable=1 ## Solution suggested by @crazy-matt ##
+	
 	lan_ifname="$(nvram get lan_ifname)"
 	lan_ipaddr="$(nvram get lan_ipaddr)"
 	lan_netmask="$(nvram get lan_netmask)"
