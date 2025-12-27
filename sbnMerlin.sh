@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2024-Jun-26].
+# Last Modified: janico82 [2025-Dec-27].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -37,7 +37,7 @@ readonly script_xdir="/jffs/scripts"
 readonly script_diag="/tmp/$script_name"
 readonly script_config="$script_dir/$script_name.conf"
 readonly script_md5="$script_dir/$script_name.md5"
-readonly script_version="1.2.6"
+readonly script_version="1.2.7"
 readonly script_branch="master"
 readonly script_repo="https://janico82.gateway.scarf.sh/asuswrt-merlin/$script_name/$script_branch"
 
@@ -266,7 +266,7 @@ convert_cidr() { # convert netmask to cidr
 }
 
 convert_netmask() { # convert cidr to netmask
-    value=$(( 0xffffffff ^ ((1 << (32 - $1)) - 1) ))
+ #   value=$(( 0xffffffff ^ ((1 << (32 - $1)) - 1) ))
     echo "$(( (value >> 24) & 0xff )).$(( (value >> 16) & 0xff )).$(( (value >> 8) & 0xff )).$(( value & 0xff ))"
 }
 
@@ -889,36 +889,28 @@ pcfile_avahi() {
 		create)
 
 			if [ -f "$pcfile" ]; then
-				filelinecount=$(grep -c '# '"($script_name) Network Isolation Tool" "$pcfile")
+				# Remove existing sbnMerlin entries ## Solution suggested by @crazy-matt ##
+				sed -i '/# ('"$script_name"')/d' "$pcfile"
 
-				if [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/# ('"$script_name"')/d' "$pcfile"
-
-					if [ "$(grep -c 'CONFIG' '$pcfile')" -eq 0 ]; then
-						{
-						echo 'CONFIG=$1'
-						echo ''
-						} >> "$pcfile"
-					fi
-
-					if [ "$(grep -c 'helper.sh' '$pcfile')" -eq 0 ]; then
-						{
-						echo '. /usr/sbin/helper.sh'
-						echo ''
-						} >> "$pcfile"
-					fi
-
-					{
-				 	 echo 'pc_append "[reflector]" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
-				 	 echo 'pc_append "enable-reflector=yes" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
-					 echo ''
-				 	 echo 'pc_append "[Server]" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
-				 	 echo 'pc_append "cache-entries-max=0" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
-					} >> "$pcfile"
-
-					service restart_mdns >/dev/null 2>&1
+				# Always ensure headers exist at the top
+				if ! grep -q '^CONFIG=\$1' "$pcfile"; then
+					sed -i '1a\CONFIG=$1\n' "$pcfile"
 				fi
 
+				if ! grep -q '^[[:space:]]*\. /usr/sbin/helper.sh' "$pcfile"; then
+					sed -i '2a\. /usr/sbin/helper.sh\n' "$pcfile"
+				fi
+
+				# Add sbnMerlin specific configs
+				{
+					echo 'pc_append "[reflector]" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
+					echo 'pc_append "enable-reflector=yes" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
+					echo ''
+					echo 'pc_append "[Server]" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
+					echo 'pc_append "cache-entries-max=0" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
+				} >> "$pcfile"
+
+				service restart_mdns >/dev/null 2>&1
 			else
 				{
 				 echo '#!/bin/sh'
@@ -988,24 +980,16 @@ pcfile_dnsmasq() {
 		create)
 			
 			if [ -f "$pcfile" ]; then
-				filelinecount=$(grep -c '# '"($script_name) Network Isolation Tool" "$pcfile")
-				
-				if [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/# ('"$script_name"')/d' "$pcfile"
+				# Remove existing sbnMerlin entries ## Solution suggested by @crazy-matt ##
+				sed -i '/# ('"$script_name"')/d' "$pcfile"
 
-					if [ "$(grep -c 'CONFIG' '$pcfile')" -eq 0 ]; then
-						{
-						echo 'CONFIG=$1'
-						echo ''
-						} >> "$pcfile"
-					fi
+				# Always ensure headers exist at the top
+				if ! grep -q '^CONFIG=\$1' "$pcfile"; then
+					sed -i '1a\CONFIG=$1\n' "$pcfile"
+				fi
 
-					if [ "$(grep -c 'helper.sh' '$pcfile')" -eq 0 ]; then
-						{
-						echo '. /usr/sbin/helper.sh'
-						echo ''
-						} >> "$pcfile"
-					fi
+				if ! grep -q '^[[:space:]]*\. /usr/sbin/helper.sh' "$pcfile"; then
+					sed -i '2a\. /usr/sbin/helper.sh\n' "$pcfile"
 				fi
 			else
 				{
@@ -1039,24 +1023,16 @@ pcfile_hosts() {
 		create)
 			
 			if [ -f "$pcfile" ]; then
-				filelinecount=$(grep -c '# '"($script_name) Network Isolation Tool" "$pcfile")
-				
-				if [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/# ('"$script_name"')/d' "$pcfile"
+				# Remove existing sbnMerlin entries ## Solution suggested by @crazy-matt ##
+				sed -i '/# ('"$script_name"')/d' "$pcfile"
 
-					if [ "$(grep -c 'CONFIG' '$pcfile')" -eq 0 ]; then
-						{
-						echo 'CONFIG=$1'
-						echo ''
-						} >> "$pcfile"
-					fi
+				# Always ensure headers exist at the top
+				if ! grep -q '^CONFIG=\$1' "$pcfile"; then
+					sed -i '1a\CONFIG=$1\n' "$pcfile"
+				fi
 
-					if [ "$(grep -c 'helper.sh' '$pcfile')" -eq 0 ]; then
-						{
-						echo '. /usr/sbin/helper.sh'
-						echo ''
-						} >> "$pcfile"
-					fi
+				if ! grep -q '^[[:space:]]*\. /usr/sbin/helper.sh' "$pcfile"; then
+					sed -i '2a\. /usr/sbin/helper.sh\n' "$pcfile"
 				fi
 			else
 				{
