@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2025-Dec-27].
+# Last Modified: janico82 [2025-Dec-28].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -1346,6 +1346,7 @@ bridge_config() {
 			if bridge_exists "$bri_name" && validate_fullfeature_bridge "$bri_name"; then
 
 				# Delete the network bridge.
+				loggerEx "Removing network bridge($bri_name) from interface isolation."
 				ifconfig "$bri_name" down >/dev/null 2>&1
 				brctl delbr "$bri_name" >/dev/null 2>&1
 
@@ -1356,7 +1357,7 @@ bridge_config() {
 				nvram unset "${bri_name}_netmask"
 				nvram unset "${bri_name}_ipaddr"
 
-				loggerEx "Network bridge($bri_name) deleted."
+				loggerEx "Network bridge($bri_name) removed."
 			fi
 
 			# Setup nvram values for bridge.
@@ -1387,7 +1388,6 @@ bridge_ifname_change() {
 	
 	# Add interface to destination bridge.
 	brctl addif "$bri_dst" "$if_name" >/dev/null 2>&1
-
 	loggerEx "Interface($if_name) added to bridge($bri_dst)."
 
 	return 0 # OK
@@ -1417,6 +1417,7 @@ bridge_ifname_config() {
 
 			# Confirm the bridge does exists.
 			if bridge_exists "$bri_name"; then
+				loggerEx "Configuring interfaces for bridge($bri_name)."
 
 				# Gathering values from config.
 				bri_ifnames=$(getconf_bri_ifnames "$bri_name")
@@ -1454,6 +1455,8 @@ bridge_ifname_config() {
 				br0_ifnames="$(brctl show "br0" | awk 'NR>1' | awk '{print $NF}' |tr '\n' ' ' | xargs)"
 				bri_ifnames="$(brctl show "$bri_name" | awk 'NR>1' | awk '{print $NF}' |tr '\n' ' ' | xargs)"
 
+				loggerEx "Bridge($bri_name) interface configuration completed."
+
 				# Setup nvram values for bridge.
 				nvram set br0_ifnames="$br0_ifnames"
 				nvram set lan_ifnames="$br0_ifnames"
@@ -1465,6 +1468,7 @@ bridge_ifname_config() {
 
 			# Confirm the bridge does exists, or if its not a fullfeature bridge because it does not exists when the script is executed.
 			if bridge_exists "$bri_name" || ! validate_fullfeature_bridge "$bri_name"; then
+				loggerEx "Removing interfaces from bridge($bri_name) to default bridge(br0)."
 
 				# Gathering values from config.
 				bri_ifnames=$(getconf_bri_ifnames "$bri_name")
@@ -1476,6 +1480,8 @@ bridge_ifname_config() {
 
 				# Get interfaces from default bridge.
 				br0_ifnames=$(gethw_bri_ifnames br0)
+
+				loggerEx "Bridge($bri_name) interface removal completed."
 
 				# Setup nvram values for bridge.
 				nvram set br0_ifnames="$br0_ifnames"
@@ -1518,6 +1524,7 @@ bridge_isolate() {
 					loggerEx "Device interface($if_name) AP isolation($bri_ap_isolate) miss-match. Please restart wireless service."
 				fi
 
+				loggerEx "Setting AP isolation($bri_ap_isolate) for interface($if_name) in bridge($bri_name)."
 				nvram set "${if_name}_ap_isolate"="$bri_ap_isolate"
 			done
 
