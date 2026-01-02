@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2025-Dec-28].
+# Last Modified: janico82 [2026-Jan-02].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -27,6 +27,7 @@
 # shellcheck disable=SC2129
 # shellcheck disable=SC2155
 # shellcheck disable=SC2317
+# shellcheck disable=SC2329
 # shellcheck disable=SC3045
 
 # Script variables #
