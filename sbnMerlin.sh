@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2024-Jun-26].
+# Last Modified: janico82 [2025-Dec-28].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -37,7 +37,7 @@ readonly script_xdir="/jffs/scripts"
 readonly script_diag="/tmp/$script_name"
 readonly script_config="$script_dir/$script_name.conf"
 readonly script_md5="$script_dir/$script_name.md5"
-readonly script_version="1.2.6"
+readonly script_version="1.2.7"
 readonly script_branch="master"
 readonly script_repo="https://janico82.gateway.scarf.sh/asuswrt-merlin/$script_name/$script_branch"
 
@@ -67,9 +67,10 @@ readonly env_regex_binary="[01]"
 readonly env_regex_bridge="br(1[1-4]|19|2[1-4]|29|[0-9])"
 readonly env_regex_allowed_bridges="br(1[1-4]|19|2[1-4]|29|[1-9])"
 readonly env_regex_eth_ifname="(eth[1-9]\s+)|(eth[1-9]$)" # Ehternet interfaces excluded eth1.501, eth2.502, etc
+readonly env_regex_bond_ifname="(bond[0-9]+\s+)|(bond[0-9]+$)" # Bond interfaces ## Solution suggested by @crazy-matt ##
 readonly env_regex_wl_ifname="(wl[0-3]+(\.[1-3]+))"
 readonly env_regex_allowed_wifname="(wl[0-3]+(\.[2-3]+))"
-readonly env_regex_allowed_ifname="($env_regex_eth_ifname|$env_regex_allowed_wifname)"
+readonly env_regex_allowed_ifname="($env_regex_eth_ifname|$env_regex_bond_ifname|$env_regex_allowed_wifname)"
 readonly env_regex_ipaddr="(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
 readonly env_regex_local_ipaddr="(^10\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))|(^172\.(1[6-9]|2[0-9]|3[0-1])\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))|(^192\.168\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$"
 readonly env_regex_macaddr="([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})"
@@ -889,36 +890,28 @@ pcfile_avahi() {
 		create)
 
 			if [ -f "$pcfile" ]; then
-				filelinecount=$(grep -c '# '"($script_name) Network Isolation Tool" "$pcfile")
+				# Remove existing sbnMerlin entries ## Solution suggested by @crazy-matt ##
+				sed -i '/# ('"$script_name"')/d' "$pcfile"
 
-				if [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/# ('"$script_name"')/d' "$pcfile"
-
-					if [ "$(grep -c 'CONFIG' '$pcfile')" -eq 0 ]; then
-						{
-						echo 'CONFIG=$1'
-						echo ''
-						} >> "$pcfile"
-					fi
-
-					if [ "$(grep -c 'helper.sh' '$pcfile')" -eq 0 ]; then
-						{
-						echo '. /usr/sbin/helper.sh'
-						echo ''
-						} >> "$pcfile"
-					fi
-
-					{
-				 	 echo 'pc_append "[reflector]" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
-				 	 echo 'pc_append "enable-reflector=yes" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
-					 echo ''
-				 	 echo 'pc_append "[Server]" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
-				 	 echo 'pc_append "cache-entries-max=0" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
-					} >> "$pcfile"
-
-					service restart_mdns >/dev/null 2>&1
+				# Always ensure headers exist at the top
+				if ! grep -q '^CONFIG=\$1' "$pcfile"; then
+					sed -i '1a\CONFIG=$1\n' "$pcfile"
 				fi
 
+				if ! grep -q '^[[:space:]]*\. /usr/sbin/helper.sh' "$pcfile"; then
+					sed -i '2a\. /usr/sbin/helper.sh\n' "$pcfile"
+				fi
+
+				# Add sbnMerlin specific configs
+				{
+					echo 'pc_append "[reflector]" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
+					echo 'pc_append "enable-reflector=yes" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
+					echo ''
+					echo 'pc_append "[Server]" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
+					echo 'pc_append "cache-entries-max=0" "$CONFIG" # ('"$script_name"') Network Isolation Tool'
+				} >> "$pcfile"
+
+				service restart_mdns >/dev/null 2>&1
 			else
 				{
 				 echo '#!/bin/sh'
@@ -988,24 +981,16 @@ pcfile_dnsmasq() {
 		create)
 			
 			if [ -f "$pcfile" ]; then
-				filelinecount=$(grep -c '# '"($script_name) Network Isolation Tool" "$pcfile")
-				
-				if [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/# ('"$script_name"')/d' "$pcfile"
+				# Remove existing sbnMerlin entries ## Solution suggested by @crazy-matt ##
+				sed -i '/# ('"$script_name"')/d' "$pcfile"
 
-					if [ "$(grep -c 'CONFIG' '$pcfile')" -eq 0 ]; then
-						{
-						echo 'CONFIG=$1'
-						echo ''
-						} >> "$pcfile"
-					fi
+				# Always ensure headers exist at the top
+				if ! grep -q '^CONFIG=\$1' "$pcfile"; then
+					sed -i '1a\CONFIG=$1\n' "$pcfile"
+				fi
 
-					if [ "$(grep -c 'helper.sh' '$pcfile')" -eq 0 ]; then
-						{
-						echo '. /usr/sbin/helper.sh'
-						echo ''
-						} >> "$pcfile"
-					fi
+				if ! grep -q '^[[:space:]]*\. /usr/sbin/helper.sh' "$pcfile"; then
+					sed -i '2a\. /usr/sbin/helper.sh\n' "$pcfile"
 				fi
 			else
 				{
@@ -1039,24 +1024,16 @@ pcfile_hosts() {
 		create)
 			
 			if [ -f "$pcfile" ]; then
-				filelinecount=$(grep -c '# '"($script_name) Network Isolation Tool" "$pcfile")
-				
-				if [ "$filelinecount" -gt 0 ]; then
-					sed -i -e '/# ('"$script_name"')/d' "$pcfile"
+				# Remove existing sbnMerlin entries ## Solution suggested by @crazy-matt ##
+				sed -i '/# ('"$script_name"')/d' "$pcfile"
 
-					if [ "$(grep -c 'CONFIG' '$pcfile')" -eq 0 ]; then
-						{
-						echo 'CONFIG=$1'
-						echo ''
-						} >> "$pcfile"
-					fi
+				# Always ensure headers exist at the top
+				if ! grep -q '^CONFIG=\$1' "$pcfile"; then
+					sed -i '1a\CONFIG=$1\n' "$pcfile"
+				fi
 
-					if [ "$(grep -c 'helper.sh' '$pcfile')" -eq 0 ]; then
-						{
-						echo '. /usr/sbin/helper.sh'
-						echo ''
-						} >> "$pcfile"
-					fi
+				if ! grep -q '^[[:space:]]*\. /usr/sbin/helper.sh' "$pcfile"; then
+					sed -i '2a\. /usr/sbin/helper.sh\n' "$pcfile"
 				fi
 			else
 				{
@@ -1369,6 +1346,7 @@ bridge_config() {
 			if bridge_exists "$bri_name" && validate_fullfeature_bridge "$bri_name"; then
 
 				# Delete the network bridge.
+				loggerEx "Removing network bridge($bri_name) from interface isolation."
 				ifconfig "$bri_name" down >/dev/null 2>&1
 				brctl delbr "$bri_name" >/dev/null 2>&1
 
@@ -1379,7 +1357,7 @@ bridge_config() {
 				nvram unset "${bri_name}_netmask"
 				nvram unset "${bri_name}_ipaddr"
 
-				loggerEx "Network bridge($bri_name) deleted."
+				loggerEx "Network bridge($bri_name) removed."
 			fi
 
 			# Setup nvram values for bridge.
@@ -1410,7 +1388,6 @@ bridge_ifname_change() {
 	
 	# Add interface to destination bridge.
 	brctl addif "$bri_dst" "$if_name" >/dev/null 2>&1
-
 	loggerEx "Interface($if_name) added to bridge($bri_dst)."
 
 	return 0 # OK
@@ -1440,6 +1417,7 @@ bridge_ifname_config() {
 
 			# Confirm the bridge does exists.
 			if bridge_exists "$bri_name"; then
+				loggerEx "Configuring interfaces for bridge($bri_name)."
 
 				# Gathering values from config.
 				bri_ifnames=$(getconf_bri_ifnames "$bri_name")
@@ -1477,6 +1455,8 @@ bridge_ifname_config() {
 				br0_ifnames="$(brctl show "br0" | awk 'NR>1' | awk '{print $NF}' |tr '\n' ' ' | xargs)"
 				bri_ifnames="$(brctl show "$bri_name" | awk 'NR>1' | awk '{print $NF}' |tr '\n' ' ' | xargs)"
 
+				loggerEx "Bridge($bri_name) interface configuration completed."
+
 				# Setup nvram values for bridge.
 				nvram set br0_ifnames="$br0_ifnames"
 				nvram set lan_ifnames="$br0_ifnames"
@@ -1488,6 +1468,7 @@ bridge_ifname_config() {
 
 			# Confirm the bridge does exists, or if its not a fullfeature bridge because it does not exists when the script is executed.
 			if bridge_exists "$bri_name" || ! validate_fullfeature_bridge "$bri_name"; then
+				loggerEx "Removing interfaces from bridge($bri_name) to default bridge(br0)."
 
 				# Gathering values from config.
 				bri_ifnames=$(getconf_bri_ifnames "$bri_name")
@@ -1499,6 +1480,8 @@ bridge_ifname_config() {
 
 				# Get interfaces from default bridge.
 				br0_ifnames=$(gethw_bri_ifnames br0)
+
+				loggerEx "Bridge($bri_name) interface removal completed."
 
 				# Setup nvram values for bridge.
 				nvram set br0_ifnames="$br0_ifnames"
@@ -1541,6 +1524,7 @@ bridge_isolate() {
 					loggerEx "Device interface($if_name) AP isolation($bri_ap_isolate) miss-match. Please restart wireless service."
 				fi
 
+				loggerEx "Setting AP isolation($bri_ap_isolate) for interface($if_name) in bridge($bri_name)."
 				nvram set "${if_name}_ap_isolate"="$bri_ap_isolate"
 			done
 
@@ -1592,6 +1576,8 @@ firewall_config() {
 	bri_allow_routeraccess=$(getconf_bri_allow_routeraccess "$bri_name")
 
 	ntp_enable="$(nvram get ntpd_enable)"
+	grep -qE "^TIMESERVER=(chronyd|ntpd)" /opt/share/ntpmerlin.d/config /jffs/addons/ntpmerlin.d/config 2>/dev/null && ntp_enable=1 ## Solution suggested by @crazy-matt ##
+	
 	lan_ifname="$(nvram get lan_ifname)"
 	lan_ipaddr="$(nvram get lan_ipaddr)"
 	lan_netmask="$(nvram get lan_netmask)"
