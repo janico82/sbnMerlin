@@ -3,7 +3,7 @@
 ![Shellcheck](https://github.com/janico82/sbnMerlin/actions/workflows/shellcheck.yml/badge.svg)
 
 ## v1.2.7
-### Updated on 2025-12-28
+### Updated on 2026-01-02
 ## About
 Feature expansion of Wireless guest networks (wl0.2, wl0.3, wl1.2, wl1.3 or others) on AsusWRT-Merlin, that allows to:
 *   Automatic creation of ethernet bridge instances, based on active guest wireless networks and settings.
