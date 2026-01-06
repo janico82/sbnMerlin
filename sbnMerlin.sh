@@ -1847,6 +1847,55 @@ wlif_bounceclients() {
 	return 0 # OK
 }
 
+ethif_bounceclients() {
+	bri_name=$1
+
+	# Confirm the function was called with the correct arguments.
+	if [ $# -ne 1 ] || ! validate_bridge "$bri_name" ; then
+		loggerEx "Error: Invalid arguments. Usage: ethif_bounceclients br17."
+		
+		script_lock delete # Unlock script
+		exit $env_error # NOK
+	fi
+
+	# Gathering values from device.
+	bri_ifnames=$(gethw_bri_ifnames_x "$bri_name")
+	bri_ifnames=$(echo "$bri_ifnames" | grep -o -E "$env_regex_eth_ifname")
+
+	# Skip if no eth interfaces on this bridge
+	if [ -z "$bri_ifnames" ]; then
+		return 0
+	fi
+
+	loggerEx "Forcing wired clients on bridge($bri_name) to renew DHCP."
+
+	for if_name in $bri_ifnames; do
+    # Skip bond slaves and br0 default interfaces
+		if readlink "/sys/class/net/$if_name/master" 2>/dev/null | grep -qE "(bond|br0)"; then
+			loggerEx "Skipping interface($if_name) - bond slave or br0 default."
+			continue
+		fi
+
+		loggerEx "Bouncing interface($if_name) on bridge($bri_name)."
+		ifconfig "$if_name" down 2>/dev/null
+	done
+
+	sleep 1
+
+	for if_name in $bri_ifnames; do
+    # Skip bond slaves and br0 default interfaces
+		if readlink "/sys/class/net/$if_name/master" 2>/dev/null | grep -qE "(bond|br0)"; then
+			continue
+		fi
+    
+		ifconfig "$if_name" up 2>/dev/null
+	done
+
+	loggerEx "Wired interface bounce on bridge($bri_name) complete."
+
+	return 0 # OK
+}
+
 wlif_listclients() {
 	bri_name=$1
 
@@ -2779,7 +2828,12 @@ case "$1" in
 		# Cycle from every allowed bridges and force Guest clients to reauthenticate. 
 		for bri_name in $(gethw_bri_enabled); do
 			
+      if [ "$2" == "wl" ] || [ "$2" == "all" ] || [ "$2" == "" ]; then
 			wlif_bounceclients "$bri_name"
+      fi
+      if [ "$2" == "eth" ] || [ "$2" == "all" ] || [ "$2" == "" ]; then
+			  ethif_bounceclients "$bri_name"
+      fi
 		done
 
 		script_lock delete # Unlock script
