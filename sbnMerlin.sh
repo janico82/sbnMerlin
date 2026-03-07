@@ -1665,7 +1665,7 @@ firewall_config() {
 		if [ $bri_allow_internet -eq $env_enable ]; then
 
 			for wan_ifname in $wan_ifnames; do # Find rule position in the FORWARD chain before the WAN ifname.
-				rp="$(iptables --line-numbers -vL FORWARD | grep -E -m 1 '(DROP|ACCEPT).*((!br0|br[1-9])\s+'$wan_ifname')\s+anywhere' | awk '{print $1}')"
+				rp="$(iptables --line-numbers -vL FORWARD | grep -E -m 1 '(DROP|ACCEPT|logdrop|logaccept).*((!br0|br[1-9])\s+'$wan_ifname')\s+anywhere' | awk '{print $1}')"
 				
 				iptables -I FORWARD "$rp" -i "$bri_name" -o "$wan_ifname" -j ACCEPT >/dev/null 2>&1
 			done
@@ -1673,7 +1673,7 @@ firewall_config() {
 
 		# Forbid packets from bridge to be forwarded to other interfaces.
 		for wan_ifname in $wan_ifnames; do # Find rule position in the FORWARD chain before the WAN ifname.
-			rp="$(iptables --line-numbers -vL FORWARD | grep -E -m 1 'WGNPControls|((DROP|ACCEPT)\s+all\s+--\s+(!br0|br[1-9])\s+'$wan_ifname')\s+anywhere' | awk '{print $1}')"
+			rp="$(iptables --line-numbers -vL FORWARD | grep -E -m 1 'WGNPControls|((DROP|ACCEPT|logdrop|logaccept)\s+all\s+--\s+(!br0|br[1-9])\s+'$wan_ifname')\s+anywhere' | awk '{print $1}')"
 			
 			iptables -I FORWARD "$rp" -i "$bri_name" -j WGNPControls >/dev/null 2>&1
 		done
