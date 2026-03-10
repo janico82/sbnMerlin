@@ -14,7 +14,7 @@
 ##           and to @jackyaz for the YazFi script          ##
 ##         to @RMerlin for AsusWRT-Merlin firmware.        ##
 #############################################################
-# Last Modified: janico82 [2026-Jan-02].
+# Last Modified: janico82 [2026-Mar-10].
 #--------------------------------------------------
 
 # Shellcheck directives #
@@ -859,13 +859,13 @@ evfile_services_start() {
 				fi
 				
 				if [ "$filelinecountex" -eq 0 ]; then
-					echo "$script_xdir/$script_name run-config & # ($script_name) Network Isolation Tool" >> "$evfile"
+					echo "($script_xdir/$script_name run-config; while [ '$(nvram get wan0_state_t)' != '2' ]; do sleep 5; done; sleep 5 && $script_xdir/$script_name bc eth) & # ($script_name) Network Isolation Tool" >> "$evfile"
 				fi
 			else
 				{
 				 echo "#!/bin/sh"
 				 echo ""
-				 echo "$script_xdir/$script_name run-config & # ($script_name) Network Isolation Tool" 
+				 echo "($script_xdir/$script_name run-config; while [ '$(nvram get wan0_state_t)' != '2' ]; do sleep 5; done; sleep 5 && $script_xdir/$script_name bc eth) & # ($script_name) Network Isolation Tool" 
 				} > "$evfile"
 				chmod 0755 "$evfile"
 			fi
@@ -1847,7 +1847,7 @@ wlif_bounceclients() {
 	return 0 # OK
 }
 
-ethif_bounceclients() {
+ethif_bounceclients() { ## Solution suggested by @crazy-matt ##
 	bri_name=$1
 
 	# Confirm the function was called with the correct arguments.
@@ -2408,6 +2408,10 @@ script_install() {
 		exit 1
 	fi
 
+	# Execute script legacy instructions.
+	script_legacy
+
+	# Create files for custom configurations.
 	evfile_services_start create 2>/dev/null
 	evfile_service_event_end create 2>/dev/null
 	evfile_firewall_start create 2>/dev/null
@@ -2416,22 +2420,19 @@ script_install() {
 	pcfile_hosts create 2>/dev/null
 	pcfile_cron create 2>/dev/null
 
-	# Create script directory	
+	# Create script directory.	
 	if [ ! -d "$script_dir" ] ; then
 		mkdir -p "$script_dir"
 	fi
-	# Create custom scripts directory
+	# Create custom scripts directory.
 	if [ ! -d "$script_cdir" ] ; then
 		mkdir -p "$script_cdir"
 	fi
 
-	# Download files from repository
+	# Download files from repository.
 	download_file config
 	download_file README.md
 	download_file LICENSE
-
-	# Execute script legacy instructions.
-	script_legacy
 
 	loggerEx clio "Script($script_name $script_version) installation complete."
 	while true; do
@@ -2477,6 +2478,10 @@ script_legacy() {
 		ipline=$(echo "$ipline" | cut -c 4-) # Remove the first two characters
 		eval "iptables -t nat -D $ipline >/dev/null 2>&1"
 	done
+
+	# From v1.2.7
+	# Remove legacy custom files.
+	evfile_services_start delete 2>/dev/null
 
 }
 
@@ -2828,10 +2833,10 @@ case "$1" in
 		# Cycle from every allowed bridges and force Guest clients to reauthenticate. 
 		for bri_name in $(gethw_bri_enabled); do
 			
-      if [ "$2" == "wl" ] || [ "$2" == "all" ] || [ "$2" == "" ]; then
+      if [ "$2" = "wl" ] || [ "$2" = "all" ] || [ "$2" = "" ]; then
 			wlif_bounceclients "$bri_name"
       fi
-      if [ "$2" == "eth" ] || [ "$2" == "all" ] || [ "$2" == "" ]; then
+      if [ "$2" = "eth" ] || [ "$2" = "all" ] || [ "$2" = "" ]; then
 			  ethif_bounceclients "$bri_name"
       fi
 		done
